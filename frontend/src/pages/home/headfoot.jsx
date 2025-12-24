@@ -41,8 +41,17 @@ function Headfoot (){
 
         </div>
 
-        <div className="cust">
-            <h1>Customer Favorites</h1>
+       
+            <h1>Customer reviews</h1>
+             <div className="Best">
+             <HomeCard link="/cust.webp" name="1"/>
+            <HomeCard link="/cust.webp" name="2"/>
+            <HomeCard link="/cust.webp" name="3"/>
+            <HomeCard link="/cust.webp" name="4"/>  
+            <HomeCard link="/cust.webp" name="5"/>
+            <HomeCard link="/cust.webp" name="6"/>
+            <HomeCard link="/cust.webp" name="7"/>
+            <HomeCard link="/cust.webp" name="8"/>
 
         </div>
 
