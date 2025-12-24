@@ -2,6 +2,7 @@ import React from 'react';
 import Head from '../../components/Header.jsx';
 import Footer from "../../components/Footer.jsx";
 import "./Home.css";
+import HomeCard from "../../components/HomeCard.jsx"
 
 function Headfoot (){
 

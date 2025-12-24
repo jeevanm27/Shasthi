@@ -24,3 +24,7 @@ Thumbs.db
 # IDE / Editor
 .vscode/
 .idea/
+
+# Large image files (temporarily)
+frontend/public/home.png
+frontend/public/vite.png
