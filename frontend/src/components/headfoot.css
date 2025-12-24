@@ -1,0 +1,78 @@
+#hh1{
+    
+    text-align: center;
+    padding : 15px
+
+}
+
+header {
+    height: 150px;
+    background-color:rgba(228, 230, 233, 0.95);
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 100;
+    margin-bottom:10px;
+}
+
+
+#c1{
+    height:400px    
+}
+
+footer {
+    background-color:rgb(228, 230, 233);
+    height:200px;
+    margin:0.1px;
+
+}
+
+footer p{
+    margin: 10px;
+}
+
+.foo1{
+    width:25%;
+    display:inline-block;
+    margin: 10px;
+    margin-top: 50px;
+}
+
+.foo2{
+    width:25%;
+    display:inline-block;
+    
+}
+
+#conus{
+    font-size:larger;
+}
+
+.foo2 p a{
+    text-decoration: none;
+    font-size: 1.1em;
+}
+
+
+nav {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    background-color:slategrey;
+    margin-bottom:5px;
+}
+
+nav p{
+    color:aliceblue;
+    padding:10px;
+}
+
+img{
+    margin-top:5px;
+    margin-bottom:5px;
+}
+
+
+body {
+    font-family: "Inter", "Segoe UI", sans-serif;
+}

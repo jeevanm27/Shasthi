@@ -1,0 +1,29 @@
+*{
+  padding: 0px;
+  margin:0px;
+}
+
+.App button{
+  padding:10px;
+  /* margin:15px; */
+  border-radius:10%;
+  color:aliceblue;
+  background-color:black;
+  font-size:x-large;
+}
+
+.App button:hover{
+  color:rgb(96, 189, 96);
+  padding:20px;
+  
+}
+
+.App h1{
+  color:rgb(91, 255, 244);
+  background-color:slategrey;
+}
+
+.App #f1{
+  background-color:slategrey;
+}
+
