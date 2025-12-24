@@ -1,7 +1,7 @@
 import React from 'react';
 import Head from '../../components/Header.jsx';
 import Footer from "../../components/Footer.jsx";
-import "./Home.css";
+import "./home.css";
 import HomeCard from "../../components/HomeCard.jsx"
 
 function Headfoot (){
@@ -13,16 +13,31 @@ function Headfoot (){
 
     <div className ="homepage">
         <div class="homeimg"><img  src="/home.png" /></div>
-        
+        <h1>Best Sellers</h1>
         <div className="Best">
-            <h1>Best Sellers</h1>
+            
+            <HomeCard name="1"/>
+            <HomeCard name="2"/>
+            <HomeCard name="3"/>
+            <HomeCard name="4"/>
+            <HomeCard name="5"/>
+            <HomeCard name="6"/>
+            <HomeCard name="7"/>
+            <HomeCard name="8"/>
 
             
 
         </div>
-
-        <div className="new">
-            <h1>New Arrivals</h1>
+<h1>New Arrivals</h1>
+        <div className="Best">
+             <HomeCard name="1"/>
+            <HomeCard name="2"/>
+            <HomeCard name="3"/>
+            <HomeCard name="4"/>
+            <HomeCard name="5"/>
+            <HomeCard name="6"/>
+            <HomeCard name="7"/>
+            <HomeCard name="8"/>
 
         </div>
 

@@ -2,7 +2,11 @@ import "../pages/home/home.css";
 function HomeCard(props){
     return (
         <div className="home-card">
-            <h1>product {prop.no}</h1>
+            <img src="/bg3.jpg" />
+
+
+            <h1>product {props.name}</h1>
+            
         </div>  
     )
 

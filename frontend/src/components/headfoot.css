@@ -8,11 +8,11 @@
 header {
     height: 150px;
     background-color:rgba(228, 230, 233, 0.95);
-    position: fixed;
+    /* position: fixed; */
     top: 0;
     width: 100%;
     z-index: 100;
-    margin-bottom:10px;
+    /* margin-bottom:10px; */
 }
 
 

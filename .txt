@@ -1,0 +1,10 @@
+{
+  "name": "Organic Rice",
+  "CP": 45,
+  "discount": 10,
+  "SP": 40,
+  "weight": [500, 1000],
+  "category": "Groceries",
+  "availability": true,
+  "tag": ["organic", "rice", "daily-use"]
+}

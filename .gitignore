@@ -25,6 +25,4 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Large image files (temporarily)
-frontend/public/home.png
-frontend/public/vite.png
+

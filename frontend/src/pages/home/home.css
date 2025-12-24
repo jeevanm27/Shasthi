@@ -2,10 +2,10 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  margin: 20px;
+  
   margin-left: 5px;
   margin-right: 5px;
-  margin-top: 160px;
+  
 }
 
 .homeimg img {
@@ -13,7 +13,39 @@
   max-height: 100%;
   object-fit: contain;
   margin-bottom: 20px;
-
+ 
+ 
 }
 
 
+.Best{
+  display: flex;
+  overflow-x: scroll;
+  scroll-behavior: smooth;
+  scroll-behavior: auto;
+
+
+}
+
+.best::-webkit-scrollbar {
+  display: none;
+}
+
+.home-card{
+  border:2px dashed black;
+  margin:15px;
+  border-radius:10px;
+  background-color:azure;
+}
+
+.home-card img{
+  width:100%;
+  height:200px;
+  object-fit:cover;
+  border-radius:10px 10px 0px 0px;
+}
+
+
+.home-card:hover{
+  transform: scale(1.05);
+}
