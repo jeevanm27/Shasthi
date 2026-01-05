@@ -10,26 +10,37 @@ function AddProduct (){
     const [Discount , setDiscount] = useState("");
     const [SP , setSp] = useState("");
     const [Weight , setWeight] = useState("");
-    const [Category , setCategory] = useState("");
+    const [Tag , setTag] = useState("");
     const [Availability , setAvailability] = useState("");
-    
+
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        console.log({name});
+        alert("clicked btn");   
+    }
+
+
+
+
 
     return(
         <div>
             <Head />
-            <form className ="addform" >
+            <form className ="addform" onSubmit={handleSubmit} >
             <label htmlFor="name" >Name of the product :</label>
             <input
                name = "name"
                type ="text"
                onChange = {(e) => setName(e.target.value)}
+               
                />
 
 
             <br></br>
 
             
-            <label >Cost Price</label>
+            <label >Cost Price:</label>
             <input 
             name ="CP"
             type="number"
@@ -41,7 +52,7 @@ function AddProduct (){
             
 
 
-             <label >Discount</label>
+             <label >Discount:</label>
             <input 
             name ="Discount"
             type="number"
@@ -50,23 +61,43 @@ function AddProduct (){
             <br></br>
 
 
-             <label >Category</label>
-            <input 
-            name ="Category"
-            type="text"
-            onChange ={(e) => setCategory(e.target.value)}/>
+             <label  >Tag:</label>
+            <select className="opt"  onChange = {(e) => setTag(e.target.value)}>
+                <option className="opt"  value ="new">New Arrivals</option>
+                <option className="opt"  value ="best">Best sellers</option>
+                <option className="opt"  value ="Nan">None</option>
+                
+
+            </select>
 
 
             <br></br>
 
 
-             <label >Availability</label>
-            <input 
-            name ="CP"
-            type="number"
-            onChange ={(e) => setAvailability(e.target.value)}/>
+             <label >Availability:</label>
+             <select className="opt" onChange = {(e) => setAvailability(e.target.value)}>
+                <option className="opt"  value ="new">out of stock</option>
+                <option className="opt"  value ="best">Available</option>
+                
+             </select>
+           
 
             <br></br>
+
+             <label  >Type or Category:</label>
+            <select className="opt"  onChange = {(e) => setCategory(e.target.value)}>
+                <option className="opt"  value ="Masala">Masala</option>
+                <option className="opt"  value ="Thokku">Thokku</option>
+                <option className="opt"  value ="Health Mix">Health Mix</option>
+                
+
+            </select>
+
+            
+            <br></br>
+
+
+            <button type ="submit" id="btn">Submit</button>
 
 
 
@@ -79,4 +110,4 @@ function AddProduct (){
        
 }
 
-export default AddProduct;
+export default AddProduct;    

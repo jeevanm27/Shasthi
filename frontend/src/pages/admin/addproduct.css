@@ -10,6 +10,8 @@
     margin:20px;
     font-size:x-large;
     font-family: "Inter", "Segoe UI", sans-serif;
+
+    
 }
 
 
@@ -17,5 +19,24 @@
     margin:20px;
     font-size:x-large;
     font-family: "Inter", "Segoe UI", sans-serif;
+    
 
+}
+
+
+#btn{
+    padding:10px;
+    border-radius:15%;
+    font-size:large;
+    font-family: "Inter", "Segoe UI", sans-serif;
+
+}
+
+
+
+.opt {
+    font-size: large;
+    padding: 10px;
+    border-radius:5%;
+    margin:20px;
 }
