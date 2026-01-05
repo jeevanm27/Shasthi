@@ -3,6 +3,7 @@ import Admin from "./admin"
 import styles from "./App.module.css";
 import Head from "./pages/home/headfoot.jsx";
 import AddProduct from './pages/admin/addProduct.jsx';
+import ProductListing from './pages/products/ProductListing.jsx'
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
         <Route path="/admin" element={<Admin />} />
         <Route path="/headfoot" element={<Head />} />
         <Route path ='/admin/create' element={<AddProduct/>} />
+        <Route path ="/products" element = {<ProductListing/>} />
       </Routes>
     </Router>
   )

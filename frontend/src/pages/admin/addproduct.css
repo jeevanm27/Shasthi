@@ -1,0 +1,21 @@
+.addform{
+    text-align:center;
+    margin:20px;
+    padding:20px;
+    border : 2px solid black;
+
+}
+
+.addform label{
+    margin:20px;
+    font-size:x-large;
+    font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+
+.addform input{
+    margin:20px;
+    font-size:x-large;
+    font-family: "Inter", "Segoe UI", sans-serif;
+
+}
