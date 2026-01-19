@@ -1,8 +1,15 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const ProductRoutes = require("./routes/productroutes.js");
+import express from "express";
+import mongoose from "mongoose";
+import ProductRoutes from "./routes/productRoutes.js";
+import cors from "cors";
+
+
 const app = express();
 const port = 3000;
+
+app.use(cors());
+
+app.use(express.json());
 
 
 const url =
@@ -17,8 +24,6 @@ mongoose.connect(url)
 //product routes 
 
 app.use("/api/Product",ProductRoutes);
-
-app.use(express.json());
 
 app.listen(3000, () =>{
     console.log(`backend started at ${port}`);

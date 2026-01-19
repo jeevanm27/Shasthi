@@ -1,9 +1,9 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const {add , hi } = require ("../controllers/productcontroller");
+import {add , hi } from "../controllers/productController.js";
 
 
-router.post("/add" , create);
+router.post("/add", add);
 router.get("/",hi);
 
-module.exports= router ;
+export default router;

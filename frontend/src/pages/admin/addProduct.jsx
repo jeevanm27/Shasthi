@@ -4,19 +4,34 @@ import Footer from "../../components/Footer.jsx";
 import Head from "../../components/Header.jsx";
 import "../admin/addproduct.css"
 
+
 function AddProduct (){
     const [name , setName] = useState(""); 
     const [CP , setCp] = useState(0);
-    const [Discount , setDiscount] = useState("");
-    const [SP , setSp] = useState("");
-    const [Weight , setWeight] = useState("");
-    const [Tag , setTag] = useState("");
-    const [Availability , setAvailability] = useState("");
+    const [Discount , setDiscount] = useState("e");
+    const [SP , setSp] = useState("e");
+    const [Weight , setWeight] = useState("e");
+    const [Tag , setTag] = useState("e");
+    const [Availability , setAvailability] = useState("e");
+    const [Category , setCategory] = useState("e");
 
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log({name});
+
+         alert("clicked btn"); 
+
+         await axios.post("http://localhost:3000/api/Product/add",{
+            name: name,
+            CP: CP,
+            Discount: Discount,
+            SP: SP,
+            Weight: Weight,
+            Tag: Tag,
+            Availability: Availability,
+            Category: Category
+        });
+    
         alert("clicked btn");   
     }
 
