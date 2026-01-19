@@ -1,20 +1,9 @@
 const Product = require("../models/productModel");
 
 
-const create = async (req, res) => {
-  try {
-    console.log(req.body);
-
-    res.status(201).json({
-      message: "Create route working",
-      data: req.body
-    });
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Server error" });
-  }
-};
+const add = (req,res) => {
+  
+}
 
 
 const hi =(req,res) => {
@@ -22,4 +11,4 @@ const hi =(req,res) => {
 }
 
 
-module.exports = {create , hi }
+module.exports = {add , hi }
