@@ -1,15 +1,28 @@
 import React from 'react';
+import {useState, useEffect} from 'react';
+import axios from 'axios';
 import Head from '../../components/Header.jsx';
 import Footer from "../../components/Footer.jsx";
 import "./home.css";
 import HomeCard from "../../components/HomeCard.jsx"
 
 function Headfoot (){
+    const [pro,setPro] = useState(null);
+
+    useEffect(() => {
+        axios.get("http://localhost:3000/api/Product/get")
+        .then(res => {setPro(res.data[0]);
+        
+        })
+        .catch(err => console.error("Error fetching products:", err));
+    }, [])
 
     return (
     <div>
 
     <Head />
+    
+    {pro && <h1>{pro.Name}</h1>}
 
     <div className ="homepage">
         <div class="homeimg"><img  src="/home.png" /></div>

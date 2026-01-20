@@ -1,7 +1,7 @@
 import {Product}  from "../models/productModel.js";
 
 
-export const add = async (req,res) => {
+export const Create = async (req,res) => {
   try {
     console.log(req.body);
 
@@ -31,6 +31,21 @@ export const add = async (req,res) => {
       error: error.message
     });
   }
+}
+
+
+
+export const get = async (req,res) =>{
+  try {
+
+    const getProducts = await Product.find();
+    res.status(200).json(getProducts)
+
+
+  }catch(e){
+    console.log(e);
+  }
+
 }
 
 
