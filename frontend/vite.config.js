@@ -1,10 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3001,   // ← change to any port you want
-  }
+    port: 5173,
+    proxy: {
+      '/catalog': { target: 'http://localhost:8080', changeOrigin: true, rewrite: (path) => path.replace(/^\/catalog/, '') },
+      '/orders': { target: 'http://localhost:8081', changeOrigin: true, rewrite: (path) => path.replace(/^\/orders/, '') },
+      '/insights': { target: 'http://localhost:8082', changeOrigin: true, rewrite: (path) => path.replace(/^\/insights/, '') },
+    },
+  },
 })

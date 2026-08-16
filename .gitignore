@@ -16,6 +16,9 @@ yarn-error.log*
 # Build folders
 dist/
 build/
+target/
+__pycache__/
+.venv/
 
 # OS files
 .DS_Store

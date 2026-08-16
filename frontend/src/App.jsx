@@ -1,45 +1,21 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
-import Admin from "./admin"
-import styles from "./App.module.css";
-import Head from "./pages/home/headfoot.jsx";
-import AddProduct from './pages/admin/addProduct.jsx';
-import ProductListing from './pages/products/ProductListing.jsx'
+import { useEffect, useMemo, useState } from "react";
+import AdminPanel from "./components/AdminPanel";
+import "./index.css";
 
-function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={
-          <div
-            className={styles.App}
-            style={{
-              backgroundImage: "url('/bg3.jpg')",
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "center",
-              backgroundSize: "cover",
-              height: "100vh",
-              width: "100vw"
-            }}
-          >
-            <h1 style={{ textAlign: "center" }}>shasthi masala on progress🚧 🔥</h1>
-            <Link to="/admin">
-              <button>admin page</button>
-            </Link>
-            <button>products listing</button>
-            <button>products details</button>
-            <button>about page</button>
-            <Link to="/headfoot">
-              <button>Header and footer</button>
-            </Link>
-          </div>
-        } />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/headfoot" element={<Head />} />
-        <Route path ='/admin/create' element={<AddProduct/>} />
-        <Route path ="/products" element = {<ProductListing/>} />
-      </Routes>
-    </Router>
-  )
+const catalogUrl = import.meta.env.VITE_CATALOG_API || "/catalog";
+const orderUrl = import.meta.env.VITE_ORDER_API || "/orders";
+const insightsUrl = import.meta.env.VITE_INSIGHTS_API || "/insights";
+const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+
+export default function App() {
+  const [products, setProducts] = useState([]); const [cart, setCart] = useState([]); const [query, setQuery] = useState(""); const [category, setCategory] = useState("All"); const [loading, setLoading] = useState(true); const [notice, setNotice] = useState(""); const [insight, setInsight] = useState(""); const [checkout, setCheckout] = useState(false); const [adminOpen, setAdminOpen] = useState(false);
+  useEffect(() => { fetch(`${catalogUrl}/api/products`).then(r => { if (!r.ok) throw Error("Could not load the catalog"); return r.json(); }).then(setProducts).catch(e => setNotice(e.message)).finally(() => setLoading(false)); }, []);
+  const categories = ["All", ...new Set(products.map(p => p.category))];
+  const visibleProducts = useMemo(() => products.filter(p => (category === "All" || p.category === category) && `${p.name} ${p.description}`.toLowerCase().includes(query.toLowerCase())), [products, category, query]);
+  const itemCount = cart.reduce((n, i) => n + i.quantity, 0); const total = cart.reduce((n, i) => n + i.price * i.quantity, 0);
+  function add(product) { setCart(current => { const found = current.find(i => i.id === product.id); return found ? current.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i) : [...current, { ...product, quantity: 1 }]; }); setNotice(`${product.name} added to your basket.`); }
+  function updateQuantity(id, delta) { setCart(current => current.flatMap(i => i.id === id ? (i.quantity + delta > 0 ? [{ ...i, quantity: i.quantity + delta }] : []) : [i])); }
+  async function getInsight() { if (!cart.length) return; try { const r = await fetch(`${insightsUrl}/api/insights/cart`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: cart.map(({ category, quantity }) => ({ category, quantity })) }) }); setInsight((await r.json()).message); } catch { setInsight("Our pantry tip service is taking a short break."); } }
+  async function submitOrder(event) { event.preventDefault(); const form = new FormData(event.currentTarget); try { const r = await fetch(`${orderUrl}/api/orders`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customerName: form.get("name"), email: form.get("email"), items: cart.map(i => ({ productId: i.id, name: i.name, quantity: i.quantity, unitPrice: i.price })) }) }); if (!r.ok) throw Error(); const order = await r.json(); setCart([]); setCheckout(false); setInsight(""); setNotice(`Order ${order.id.slice(0, 8)} confirmed. We will email your receipt shortly.`); } catch { setNotice("We could not place your order. Please try again."); } }
+  return <div className="app-shell"><header className="site-header"><a className="brand" href="#top">Shasthi <span>Masala</span></a><nav><a href="#shop">Shop</a><a href="#story">Our story</a><button className="admin-button" onClick={() => setAdminOpen(true)}>Admin</button><button className="cart-button" onClick={() => setCheckout(true)}>Basket <b>{itemCount}</b></button></nav></header><main id="top"><section className="hero"><p className="eyebrow">Small-batch South Indian flavours</p><h1>Bring warmth to every meal.</h1><p>Freshly ground staples, family recipes, and no unnecessary fillers.</p><a className="primary" href="#shop">Explore the pantry</a></section><section id="shop" className="catalog"><div className="section-heading"><div><p className="eyebrow">The pantry</p><h2>Made for everyday cooking</h2></div><input aria-label="Search products" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search spices" /></div><div className="filters">{categories.map(i => <button key={i} className={category === i ? "active" : ""} onClick={() => setCategory(i)}>{i}</button>)}</div>{loading ? <p>Loading our pantry...</p> : <div className="product-grid">{visibleProducts.map(p => <article className="product" key={p.id}><div className="jar"><span>{p.name.split(" ")[0]}</span></div><p className="product-tag">{p.tag}</p><h3>{p.name}</h3><p className="description">{p.description}</p><div className="product-footer"><span><strong>{money.format(p.price)}</strong><small>{p.weight}</small></span><button disabled={!p.available} onClick={() => add(p)}>{p.available ? "Add" : "Sold out"}</button></div></article>)}</div>}</section><section id="story" className="story"><p className="eyebrow">Our promise</p><h2>Honest ingredients. Big flavour.</h2><p>Shasthi Masala celebrates the comforting food we grew up with. Every jar is designed to make weekday cooking feel a little more special.</p></section></main>{notice && <div className="toast" role="status">{notice}<button onClick={() => setNotice("")}>x</button></div>}{adminOpen && <AdminPanel products={products} setProducts={setProducts} onClose={() => setAdminOpen(false)} notify={setNotice} />}{checkout && <div className="modal-backdrop"><section className="checkout" role="dialog" aria-modal="true" aria-label="Your basket"><button className="close" onClick={() => setCheckout(false)}>x</button><p className="eyebrow">Your basket</p><h2>Ready for the kitchen</h2>{cart.length === 0 ? <p>Your basket is empty. Add a few pantry favourites to begin.</p> : <><div className="cart-lines">{cart.map(i => <div key={i.id}><span>{i.name}<small>{money.format(i.price)} each</small></span><span className="quantity"><button onClick={() => updateQuantity(i.id, -1)}>-</button>{i.quantity}<button onClick={() => updateQuantity(i.id, 1)}>+</button></span></div>)}</div><div className="total">Total <strong>{money.format(total)}</strong></div>{insight ? <p className="insight">{insight}</p> : <button className="text-button" onClick={getInsight}>Get a pantry tip</button>}<form onSubmit={submitOrder}><input required name="name" placeholder="Your name" /><input required name="email" type="email" placeholder="Email address" /><button className="primary" type="submit">Place order</button></form></>}</section></div>}<footer>(c) {new Date().getFullYear()} Shasthi Masala - Ground with care</footer></div>;
 }
-
-export default App
