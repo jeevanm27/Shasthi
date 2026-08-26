@@ -16,6 +16,7 @@ services:
     build: ./backend
     environment:
       ADMIN_KEY: ${ADMIN_KEY:-shasthi-admin}
+      JWT_SECRET: ${JWT_SECRET:-shasthi-jwt-secret}
       DATABASE_URL: postgresql://shasthi:${POSTGRES_PASSWORD:-shasthi-local-password}@postgres:5432/shasthi
     depends_on:
       postgres: { condition: service_healthy }

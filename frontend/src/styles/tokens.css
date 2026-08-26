@@ -1,0 +1,70 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;700&display=swap');
+
+:root {
+  /* Brand colours */
+  --c-primary:       #d96946;
+  --c-primary-dark:  #b85535;
+  --c-primary-light: #f5a57f;
+  --c-dark:          #293522;
+  --c-dark-muted:    #42513c;
+  --c-accent:        #f1b55d;
+  --c-bg:            #f9f6ed;
+  --c-surface:       #fffdf8;
+  --c-surface-alt:   #edf0df;
+  --c-border:        #e0ddd0;
+  --c-text:          #293522;
+  --c-text-muted:    #65715e;
+  --c-error:         #a13b2b;
+  --c-error-bg:      #fae9e4;
+  --c-success:       #3a6b35;
+  --c-success-bg:    #e8f4e6;
+
+  /* Typography */
+  --font-body:    'DM Sans', system-ui, sans-serif;
+  --font-heading: 'Playfair Display', Georgia, serif;
+
+  /* Font sizes */
+  --text-xs:   11px;
+  --text-sm:   13px;
+  --text-base: 15px;
+  --text-md:   17px;
+  --text-lg:   20px;
+  --text-xl:   26px;
+  --text-2xl:  34px;
+  --text-3xl:  46px;
+  --text-4xl:  66px;
+
+  /* Spacing (4px base) */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+  --sp-20: 80px;
+  --sp-24: 96px;
+
+  /* Radius */
+  --r-sm:   3px;
+  --r:      6px;
+  --r-lg:   12px;
+  --r-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(41,53,34,.08);
+  --shadow:    0 4px 14px rgba(41,53,34,.10);
+  --shadow-lg: 0 12px 48px rgba(41,53,34,.16);
+
+  /* Layout */
+  --max-w:       1180px;
+  --header-h:    72px;
+  --pad-x:       clamp(18px, 4vw, 48px);
+
+  /* Motion */
+  --ease: cubic-bezier(.4,0,.2,1);
+  --dur:  200ms;
+}

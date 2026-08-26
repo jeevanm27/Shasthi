@@ -1,0 +1,26 @@
+{
+  "name": "Shasthi Masala",
+  "short_name": "Shasthi",
+  "description": "Small-batch South Indian spices and blends, freshly ground with care.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9f6ed",
+  "theme_color": "#293522",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "food"],
+  "lang": "en-IN",
+  "orientation": "portrait-primary"
+}
