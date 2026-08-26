@@ -8,17 +8,18 @@ import './Home.css';
 
 
 const CATEGORIES = [
-  { name: 'Blends',  emoji: '🌶️', desc: 'Classic masala mixes' },
-  { name: 'Powders', emoji: '✨', desc: 'Pure ground spices' },
-  { name: 'Podis',   emoji: '🍚', desc: 'Dry chutney powders' },
-  { name: 'Pickles', emoji: '🥭', desc: 'Tangy homestyle relishes' },
+  { name: 'Blends',  icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>, desc: 'Classic masala mixes' },
+  { name: 'Powders', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>, desc: 'Pure ground spices' },
+  { name: 'Podis',   icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>, desc: 'Dry chutney powders' },
+  { name: 'Pickles', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>, desc: 'Tangy homestyle relishes' },
 ];
 
 const TRUST = [
-  { icon: '🌿', title: '100% Natural', desc: 'No artificial preservatives, colours, or additives. Ever.' },
-  { icon: '🏺', title: 'Small-batch', desc: 'Made in limited quantities to ensure peak freshness.' },
-  { icon: '👨‍👩‍👧', title: 'Family Recipe', desc: 'Passed down across generations of South Indian cooking.' },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, title: '100% Natural', desc: 'No artificial preservatives, colours, or additives. Ever.' },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 112 12h3"/><path d="M12 7V4"/></svg>, title: 'Small-batch', desc: 'Made in limited quantities to ensure peak freshness.' },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>, title: 'Family Recipe', desc: 'Passed down across generations of South Indian cooking.' },
 ];
+
 
 export default function Home({ onNotify }) {
   const [bestSellers, setBestSellers] = useState([]);
@@ -64,13 +65,14 @@ export default function Home({ onNotify }) {
           <div className="categories-grid">
             {CATEGORIES.map(cat => (
               <Link key={cat.name} to={`/shop?category=${cat.name}`} className="category-card">
-                <span className="cat-emoji">{cat.emoji}</span>
+                <span className="cat-icon">{cat.icon}</span>
                 <div>
                   <h3>{cat.name}</h3>
                   <p>{cat.desc}</p>
                 </div>
                 <svg className="cat-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </Link>
+
             ))}
           </div>
         </div>
@@ -112,10 +114,11 @@ export default function Home({ onNotify }) {
             <Link to="/shop" className="btn-primary" style={{marginTop:'var(--sp-4)', display:'inline-block'}}>Shop now</Link>
           </div>
           <div className="story-visual">
-            <div className="story-card story-card--1">🌶️</div>
-            <div className="story-card story-card--2">✨</div>
-            <div className="story-card story-card--3">🍚</div>
+            <div className="story-card story-card--1">Stone<br/>Ground</div>
+            <div className="story-card story-card--2">No<br/>Additives</div>
+            <div className="story-card story-card--3">Farm<br/>Sourced</div>
           </div>
+
         </div>
       </section>
 

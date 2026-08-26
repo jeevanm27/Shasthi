@@ -53,9 +53,9 @@ export default function AuthModal({ open, onClose, defaultTab = 'login' }) {
       <div className="auth-modal" onClick={e => e.stopPropagation()}>
         <button className="auth-close" onClick={onClose} aria-label="Close">✕</button>
 
-        {/* Logo */}
+        {/* Brand */}
         <div className="auth-brand">
-          <span className="auth-logo">🌶️</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           <span className="auth-logo-text">Shasthi Masala</span>
         </div>
 

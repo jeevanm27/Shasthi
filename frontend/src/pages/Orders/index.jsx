@@ -45,16 +45,17 @@ export default function Orders() {
           <div className="orders-loading"><Spinner /></div>
         ) : error ? (
           <div className="orders-empty">
-            <span>⚠️</span>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <p>{error}</p>
           </div>
         ) : orders.length === 0 ? (
           <div className="orders-empty">
-            <span>📦</span>
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
             <h3>No orders yet</h3>
             <p>When you place an order, it will appear here.</p>
-            <Link to="/shop" className="btn-primary">Start shopping</Link>
+            <Link to="/shop" className="btn-primary">Browse products</Link>
           </div>
+
         ) : (
           <div className="orders-list">
             {orders.map(order => (

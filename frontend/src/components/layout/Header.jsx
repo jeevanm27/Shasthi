@@ -5,10 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 import './Header.css';
 
 export default function Header({ onCartOpen, onAuthOpen }) {
-  const { itemCount }            = useCart();
+  const { itemCount }              = useCart();
   const { user, isAuthed, logout } = useAuth();
-  const [scrolled,  setScrolled]  = useState(false);
-  const [menuOpen,  setMenuOpen]  = useState(false);
+  const [scrolled,     setScrolled]     = useState(false);
+  const [menuOpen,     setMenuOpen]     = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -17,7 +17,6 @@ export default function Header({ onCartOpen, onAuthOpen }) {
     return () => window.removeEventListener('scroll', handler);
   }, []);
 
-  // Close user menu on outside click
   useEffect(() => {
     if (!userMenuOpen) return;
     const handler = () => setUserMenuOpen(false);
@@ -43,7 +42,6 @@ export default function Header({ onCartOpen, onAuthOpen }) {
           {isAuthed && (
             <NavLink to="/orders" onClick={() => setMenuOpen(false)}>My Orders</NavLink>
           )}
-          <NavLink to="/admin" onClick={() => setMenuOpen(false)} className="nav-admin-link">Admin</NavLink>
         </nav>
 
         <div className="header-actions">
@@ -63,7 +61,7 @@ export default function Header({ onCartOpen, onAuthOpen }) {
               <button
                 className="user-avatar-btn"
                 onClick={() => setUserMenuOpen(o => !o)}
-                aria-label="User menu"
+                aria-label="Account menu"
                 aria-expanded={userMenuOpen}
               >
                 <span className="user-avatar">{initials}</span>
@@ -74,7 +72,7 @@ export default function Header({ onCartOpen, onAuthOpen }) {
                   <p className="user-email">{user.email}</p>
                   <hr />
                   <Link to="/orders" className="dropdown-item" onClick={() => setUserMenuOpen(false)}>
-                    📦 My Orders
+                    My Orders
                   </Link>
                   <button className="dropdown-item danger" onClick={() => { logout(); setUserMenuOpen(false); }}>
                     Sign out
