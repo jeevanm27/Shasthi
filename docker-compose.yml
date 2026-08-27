@@ -17,6 +17,7 @@ services:
     environment:
       ADMIN_KEY: ${ADMIN_KEY:-shasthi-admin}
       JWT_SECRET: ${JWT_SECRET:-shasthi-jwt-secret}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       DATABASE_URL: postgresql://shasthi:${POSTGRES_PASSWORD:-shasthi-local-password}@postgres:5432/shasthi
     depends_on:
       postgres: { condition: service_healthy }

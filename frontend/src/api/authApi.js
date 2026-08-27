@@ -26,6 +26,13 @@ export const authApi = {
       body: JSON.stringify({ email, password }),
     }),
 
+  googleAuth: (accessToken) =>
+    request('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: accessToken }),
+    }),
+
   me: (token) =>
     request('/api/auth/me', {
       headers: authHeaders(token),

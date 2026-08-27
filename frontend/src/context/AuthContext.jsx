@@ -48,6 +48,20 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const googleLogin = useCallback(async (accessToken) => {
+    setLoading(true);
+    try {
+      const { token, user } = await authApi.googleAuth(accessToken);
+      persist(token, user);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, message: err.message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+
   const register = useCallback(async (name, email, password) => {
     setLoading(true);
     try {
@@ -62,7 +76,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, isAuthed: !!user }}>
+    <AuthContext.Provider value={{ user, token, loading, login, googleLogin, register, logout, isAuthed: !!user }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,30 +1,32 @@
 import { useState, useCallback, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
-import Header    from './components/layout/Header';
-import Footer    from './components/layout/Footer';
-import CartDrawer from './components/cart/CartDrawer';
-import Toast     from './components/ui/Toast';
-import AuthModal from './components/auth/AuthModal';
+import Header       from './components/layout/Header';
+import Footer       from './components/layout/Footer';
+import CartDrawer   from './components/cart/CartDrawer';
+import Toast        from './components/ui/Toast';
+import AuthModal    from './components/auth/AuthModal';
 import ProtectedRoute from './components/ui/ProtectedRoute';
-import Home       from './pages/Home';
-import Shop       from './pages/Shop';
-import Checkout   from './pages/Checkout';
-import Orders     from './pages/Orders';
-import Admin      from './pages/Admin';
-import NotFound   from './pages/NotFound';
+import Home         from './pages/Home';
+import Shop         from './pages/Shop';
+import Checkout     from './pages/Checkout';
+import Orders       from './pages/Orders';
+import Admin        from './pages/Admin';
+import NotFound     from './pages/NotFound';
 import './styles/global.css';
 
-function AppShell() {
-  const [cartOpen,  setCartOpen]  = useState(false);
-  const [authOpen,  setAuthOpen]  = useState(false);
-  const [authTab,   setAuthTab]   = useState('login');
-  const [toast,     setToast]     = useState({ message: '', type: 'info' });
-  const location   = useLocation();
-  const navigate   = useNavigate();
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
-  // Auto-open auth modal when redirected by ProtectedRoute
+function AppShell() {
+  const [cartOpen, setCartOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authTab,  setAuthTab]  = useState('login');
+  const [toast,    setToast]    = useState({ message: '', type: 'info' });
+  const location = useLocation();
+  const navigate = useNavigate();
+
   useEffect(() => {
     if (location.state?.authRequired) {
       setAuthTab('login');
@@ -32,13 +34,12 @@ function AppShell() {
     }
   }, [location.state]);
 
-  const notify    = useCallback((message, type = 'info') => setToast({ message, type }), []);
-  const openCart  = useCallback(() => setCartOpen(true),  []);
-  const closeCart = useCallback(() => setCartOpen(false), []);
-  const openAuth  = useCallback((tab = 'login') => { setAuthTab(tab); setAuthOpen(true); }, []);
-  const closeAuth = useCallback(() => {
+  const notify   = useCallback((message, type = 'info') => setToast({ message, type }), []);
+  const openCart = useCallback(() => setCartOpen(true),  []);
+  const closeCart= useCallback(() => setCartOpen(false), []);
+  const openAuth = useCallback((tab = 'login') => { setAuthTab(tab); setAuthOpen(true); }, []);
+  const closeAuth= useCallback(() => {
     setAuthOpen(false);
-    // Navigate back if redirected from protected page
     if (location.state?.from) navigate(location.state.from, { replace: true });
   }, [location.state, navigate]);
 
@@ -75,12 +76,14 @@ function AppShell() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <CartProvider>
-          <AppShell />
-        </CartProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <BrowserRouter>
+        <AuthProvider>
+          <CartProvider>
+            <AppShell />
+          </CartProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </GoogleOAuthProvider>
   );
 }

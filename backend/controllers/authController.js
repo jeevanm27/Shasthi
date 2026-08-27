@@ -55,6 +55,9 @@ export async function login(req, res, next) {
     );
     const user = result.rows[0];
     if (!user) return res.status(401).json({ message: 'Invalid email or password' });
+    if (!user.password_hash) {
+      return res.status(401).json({ message: 'This account uses Google Sign-In. Please use the Google button.' });
+    }
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok)  return res.status(401).json({ message: 'Invalid email or password' });
     const token = signToken(user);
@@ -74,6 +77,63 @@ export async function me(req, res, next) {
     if (!result.rowCount) return res.status(404).json({ message: 'User not found' });
     res.json(userView(result.rows[0]));
   } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/auth/google
+// Verifies Google access_token by calling Google's userinfo endpoint
+export async function googleAuth(req, res, next) {
+  try {
+    const { access_token } = req.body;
+    if (!access_token) {
+      return res.status(400).json({ message: 'access_token is required' });
+    }
+
+    // Verify with Google's userinfo endpoint
+    const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+
+    if (!googleRes.ok) {
+      return res.status(401).json({ message: 'Invalid Google token. Please sign in again.' });
+    }
+
+    const { sub: googleId, email, name, email_verified } = await googleRes.json();
+
+    if (!email_verified) {
+      return res.status(403).json({ message: 'Google account email is not verified.' });
+    }
+
+    // Find existing user by email
+    let result = await pool.query(
+      'SELECT id, name, email, created_at FROM users WHERE email = $1',
+      [email.toLowerCase()]
+    );
+
+    let user;
+    if (result.rowCount > 0) {
+      user = result.rows[0];
+      // Link google_id if not already set
+      await pool.query(
+        `UPDATE users SET google_id = COALESCE(google_id, $1) WHERE id = $2`,
+        [googleId, user.id]
+      );
+    } else {
+      // Create new Google account (no password_hash)
+      result = await pool.query(
+        `INSERT INTO users (name, email, google_id, password_hash)
+         VALUES ($1, $2, $3, NULL)
+         RETURNING id, name, email, created_at`,
+        [name, email.toLowerCase(), googleId]
+      );
+      user = result.rows[0];
+    }
+
+    const token = signToken(user);
+    res.json({ token, user: userView(user) });
+  } catch (err) {
+    console.error('Google auth error:', err.message);
     next(err);
   }
 }

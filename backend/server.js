@@ -45,16 +45,21 @@ async function initialiseDatabase() {
       updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
-  // Users table (auth)
+  // Users table (auth) — password_hash nullable for Google OAuth users
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       name          TEXT NOT NULL,
       email         TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL,
+      password_hash TEXT,
+      google_id     TEXT UNIQUE,
       created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  // Migrate existing table: add google_id if not present, make password_hash nullable
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE`).catch(() => {});
+  await pool.query(`ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL`).catch(() => {});
+
   // Seed products
   for (const p of seedProducts) {
     await pool.query(
