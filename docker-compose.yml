@@ -12,6 +12,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
   catalog-service:
     build: ./backend
     environment:
@@ -27,6 +28,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+
   order-service:
     build: ./order-service
     environment:
@@ -44,20 +46,13 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-  insights-service:
-    build: ./insights-service
-    ports: ["8082:8082"]
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8082/health')"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+
   web:
     build: ./frontend
     ports: ["3000:80"]
     depends_on:
       catalog-service: { condition: service_healthy }
       order-service: { condition: service_healthy }
-      insights-service: { condition: service_healthy }
+
 volumes:
   postgres_data:
