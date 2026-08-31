@@ -1,4 +1,4 @@
-﻿.product-card {
+.product-card {
   background: var(--c-surface);
   border: 1px solid var(--c-border);
   border-radius: var(--r-lg);
@@ -9,44 +9,61 @@
 }
 .product-card:hover {
   box-shadow: var(--shadow);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
 }
 
-.product-jar {
-  height: 190px;
-  background: linear-gradient(160deg, color-mix(in srgb, var(--jar-color) 85%, #fff), var(--jar-color));
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* ── Image area ── */
+.product-image-wrap {
   position: relative;
+  height: 200px;
+  background: linear-gradient(135deg, var(--accent, #d96946), color-mix(in srgb, var(--accent, #d96946) 70%, #000));
   overflow: hidden;
 }
-.product-jar::before {
-  content: '';
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 400ms var(--ease);
+}
+.product-card:hover .product-image {
+  transform: scale(1.04);
+}
+
+/* Fallback when image missing or broken */
+.product-image-fallback {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.15), transparent 60%);
-}
-.jar-body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: var(--sp-2);
-  position: relative;
-  z-index: 1;
-}
-.jar-emoji { font-size: 36px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.2)); }
-.jar-label {
   font-family: var(--font-heading);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  color: rgba(255,255,255,.95);
+  color: rgba(255,255,255,.85);
   text-align: center;
-  text-shadow: 0 1px 4px rgba(0,0,0,.3);
-  max-width: 120px;
-  line-height: 1.2;
+  padding: var(--sp-4);
 }
 
+/* Category badge overlaid on image */
+.product-category-badge {
+  position: absolute;
+  top: var(--sp-3);
+  left: var(--sp-3);
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--r-full);
+}
+
+/* ── Info area ── */
 .product-info {
   padding: var(--sp-4) var(--sp-5) var(--sp-5);
   display: flex;
@@ -101,11 +118,11 @@
   transition: background var(--dur) var(--ease), transform var(--dur);
 }
 .add-btn:hover:not(:disabled) {
-  background: var(--c-dark-muted);
+  background: var(--c-primary);
   transform: scale(1.02);
 }
 .add-btn.sold-out {
-  background: #ccc;
+  background: var(--c-border);
   cursor: not-allowed;
-  color: #888;
+  color: var(--c-text-muted);
 }

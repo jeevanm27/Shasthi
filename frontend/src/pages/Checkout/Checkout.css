@@ -291,7 +291,34 @@
   justify-content: center;
 }
 
+/* ── Payment notice ── */
+.payment-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  background: var(--c-surface-alt);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r);
+  padding: var(--sp-3) var(--sp-4);
+  font-size: var(--text-sm);
+  color: var(--c-text-muted);
+}
+.payment-notice svg { flex-shrink: 0; color: var(--c-primary); }
+.payment-notice strong { color: var(--c-dark); }
+
+.pay-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 180px;
+  justify-content: center;
+}
+.pay-loading { display: flex; align-items: center; gap: var(--sp-2); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.9s linear infinite; }
+
 /* ── Responsive ── */
+
 @media (max-width: 768px) {
   .checkout-layout {
     grid-template-columns: 1fr;

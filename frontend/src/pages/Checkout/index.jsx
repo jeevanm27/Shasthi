@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { orderApi } from '../../api/orderApi';
@@ -16,10 +16,23 @@ const INITIAL_FORM = {
   address: '', city: '', pincode: '',
 };
 
+const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || '';
+
+// Dynamically load Razorpay checkout script
+function loadRazorpayScript() {
+  return new Promise((resolve) => {
+    if (window.Razorpay) { resolve(true); return; }
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload  = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
+
 export default function Checkout({ onNotify }) {
   const { items, subtotal, clear } = useCart();
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const [step,    setStep]    = useState(0);
   const [form,    setForm]    = useState(INITIAL_FORM);
@@ -27,20 +40,18 @@ export default function Checkout({ onNotify }) {
   const [error,   setError]   = useState('');
   const [order,   setOrder]   = useState(null);
 
-  // Auto-fill from logged-in user
   useEffect(() => {
-    if (user) {
-      setForm(f => ({
-        ...f,
-        name:  user.name  || f.name,
-        email: user.email || f.email,
-      }));
-    }
+    if (user) setForm(f => ({ ...f, name: user.name || f.name, email: user.email || f.email }));
   }, [user]);
+
+  // Preload Razorpay script when entering step 1
+  useEffect(() => {
+    if (step === 1 && RAZORPAY_KEY) loadRazorpayScript();
+  }, [step]);
 
   const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
 
-  // Empty cart guard
+  // Empty basket guard
   if (items.length === 0 && step < 2) {
     return (
       <div className="checkout-empty">
@@ -58,27 +69,108 @@ export default function Checkout({ onNotify }) {
     );
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  // --- Payment pipeline ---
+  async function initiatePayment() {
     setLoading(true);
     setError('');
+
+    try {
+      // Step 1: Create Razorpay order on backend
+      const res = await fetch('/catalog/api/payments/create-order', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ amount: subtotal }),
+      });
+      const rzpOrder = await res.json();
+      if (!res.ok) throw new Error(rzpOrder.message || 'Could not initiate payment');
+
+      // Step 2: If mock (no Razorpay keys) — skip popup, go straight to order creation
+      if (rzpOrder.mock || !RAZORPAY_KEY) {
+        await createOrder({ paymentId: 'demo_payment', orderId: rzpOrder.id, verified: true });
+        return;
+      }
+
+      // Step 3: Load script and open Razorpay checkout popup
+      const loaded = await loadRazorpayScript();
+      if (!loaded) throw new Error('Could not load Razorpay. Check your connection and try again.');
+
+      const options = {
+        key:         RAZORPAY_KEY,
+        amount:      rzpOrder.amount,
+        currency:    rzpOrder.currency,
+        name:        'Shasthi Masala',
+        description: 'Artisan Spice Order',
+        order_id:    rzpOrder.id,
+        prefill:     { name: form.name, email: form.email, contact: form.phone },
+        theme:       { color: '#d96946' },
+        handler: async (response) => {
+          // Step 4: Verify payment signature on backend
+          try {
+            const vRes = await fetch('/catalog/api/payments/verify', {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature,
+              }),
+            });
+            const vData = await vRes.json();
+            if (!vRes.ok || !vData.verified) throw new Error(vData.message || 'Payment verification failed');
+
+            // Step 5: Create order record
+            await createOrder({
+              paymentId: response.razorpay_payment_id,
+              orderId:   response.razorpay_order_id,
+              verified:  true,
+            });
+          } catch (err) {
+            setError(err.message);
+            setLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setError('Payment was cancelled. Your cart is still saved.');
+            setLoading(false);
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Please try again.');
+      setLoading(false);
+    }
+  }
+
+  // Create the final order record in order-service
+  async function createOrder({ paymentId }) {
     try {
       const placed = await orderApi.createOrder({
         customerName: form.name,
         email:        form.email,
+        paymentId,
         items:        items.map(i => ({ productId: i.id, quantity: i.quantity })),
       });
       setOrder(placed);
       clear();
       setStep(2);
     } catch (err) {
-      setError(err.message || 'Could not place your order. Please try again.');
+      setError(err.message || 'Payment succeeded but order could not be saved. Contact support.');
     } finally {
       setLoading(false);
     }
   }
 
-  // Shared order summary component
+  async function handleDetailsSubmit(e) {
+    e.preventDefault();
+    await initiatePayment();
+  }
+
+  // Shared order summary sidebar
   const OrderSummary = () => (
     <aside className="order-summary-aside">
       <h3>Order summary</h3>
@@ -100,6 +192,7 @@ export default function Checkout({ onNotify }) {
   return (
     <div className="checkout-page">
       <div className="container">
+
         {/* Step Progress */}
         <nav className="checkout-progress" aria-label="Order progress">
           {STEPS.map((label, i) => (
@@ -140,7 +233,9 @@ export default function Checkout({ onNotify }) {
                 <Link to="/shop" className="btn-secondary">Edit basket</Link>
                 <button className="btn-primary" onClick={() => setStep(1)}>
                   Continue to details
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
                 </button>
               </div>
             </div>
@@ -148,32 +243,29 @@ export default function Checkout({ onNotify }) {
           </div>
         )}
 
-        {/* Step 1 — Details */}
+        {/* Step 1 — Details + Payment */}
         {step === 1 && (
           <div className="checkout-layout">
             <div className="checkout-main">
-              <h1>Delivery details</h1>
-              <form className="checkout-form" onSubmit={handleSubmit} noValidate>
+              <h1>Delivery &amp; payment</h1>
+              <form className="checkout-form" onSubmit={handleDetailsSubmit} noValidate>
                 <fieldset>
                   <legend>Contact information</legend>
                   <div className="form-row">
                     <label>
                       Full name
-                      <input required type="text" autoComplete="name"
-                        placeholder="Ananya Rao"
+                      <input required type="text" autoComplete="name" placeholder="Ananya Rao"
                         value={form.name} onChange={set('name')} />
                     </label>
                     <label>
                       Email address
-                      <input required type="email" autoComplete="email"
-                        placeholder="ananya@example.com"
+                      <input required type="email" autoComplete="email" placeholder="ananya@example.com"
                         value={form.email} onChange={set('email')} />
                     </label>
                   </div>
                   <label>
                     Phone number
-                    <input type="tel" autoComplete="tel"
-                      placeholder="+91 98765 43210"
+                    <input type="tel" autoComplete="tel" placeholder="+91 98765 43210"
                       value={form.phone} onChange={set('phone')} />
                   </label>
                 </fieldset>
@@ -182,34 +274,53 @@ export default function Checkout({ onNotify }) {
                   <legend>Delivery address</legend>
                   <label>
                     Street address
-                    <input type="text" autoComplete="street-address"
-                      placeholder="12, Anna Nagar, 3rd Street"
+                    <input type="text" autoComplete="street-address" placeholder="12, Anna Nagar, 3rd Street"
                       value={form.address} onChange={set('address')} />
                   </label>
                   <div className="form-row">
                     <label>
                       City
-                      <input type="text" autoComplete="address-level2"
-                        placeholder="Chennai"
+                      <input type="text" autoComplete="address-level2" placeholder="Chennai"
                         value={form.city} onChange={set('city')} />
                     </label>
                     <label>
                       PIN code
-                      <input type="text" inputMode="numeric" autoComplete="postal-code"
-                        placeholder="600001"
+                      <input type="text" inputMode="numeric" autoComplete="postal-code" placeholder="600001"
                         value={form.pincode} onChange={set('pincode')} />
                     </label>
                   </div>
                 </fieldset>
 
+                {/* Payment notice */}
+                <div className="payment-notice">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="1" y="4" width="22" height="16" rx="2"/>
+                    <line x1="1" y1="10" x2="23" y2="10"/>
+                  </svg>
+                  <span>Secure payment via <strong>Razorpay</strong> — UPI, cards, net banking accepted</span>
+                </div>
+
                 {error && <p className="form-error" role="alert">{error}</p>}
 
                 <div className="checkout-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setStep(0)}>
+                  <button type="button" className="btn-secondary" onClick={() => { setStep(0); setError(''); }}>
                     Back
                   </button>
-                  <button type="submit" className="btn-primary" disabled={loading}>
-                    {loading ? 'Placing order…' : 'Place order'}
+                  <button type="submit" className="btn-primary pay-btn" disabled={loading}>
+                    {loading ? (
+                      <span className="pay-loading">
+                        <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                        Processing…
+                      </span>
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="1" y="4" width="22" height="16" rx="2"/>
+                          <line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                        Pay {money.format(subtotal)}
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -228,7 +339,7 @@ export default function Checkout({ onNotify }) {
             </div>
             <h1>Order confirmed</h1>
             <p className="confirmed-sub">
-              Thank you, <strong>{order.customerName}</strong>. We've received your order and will get it to you soon.
+              Thank you, <strong>{order.customerName}</strong>. Your payment was successful and your order is being prepared.
             </p>
             <div className="confirmed-id">
               Order reference: <code>#{order.id.slice(0, 8).toUpperCase()}</code>
@@ -243,7 +354,7 @@ export default function Checkout({ onNotify }) {
                 </div>
               ))}
               <div className="confirmed-total">
-                <span>Total</span>
+                <span>Total paid</span>
                 <strong>{money.format(order.total)}</strong>
               </div>
             </div>
@@ -251,13 +362,13 @@ export default function Checkout({ onNotify }) {
             <p className="confirmed-note">
               A confirmation will be sent to <strong>{order.email}</strong>.
             </p>
-
             <div className="confirmed-actions">
               <Link to="/orders" className="btn-secondary">View my orders</Link>
               <Link to="/shop"   className="btn-primary">Continue shopping</Link>
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
