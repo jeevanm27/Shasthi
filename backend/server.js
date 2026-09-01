@@ -6,6 +6,7 @@ import authRouter     from './routes/auth.js';
 import productsRouter from './routes/products.js';
 import insightsRouter from './routes/insights.js';
 import paymentsRouter from './routes/payments.js';
+import userRouter     from './routes/user.js';
 
 const app  = express();
 const port = Number(process.env.PORT || 8080);
@@ -18,6 +19,7 @@ app.use('/api/auth',      authRouter);
 app.use('/api/products',  productsRouter);
 app.use('/api/insights',  insightsRouter);
 app.use('/api/payments',  paymentsRouter);
+app.use('/api/user',      userRouter);
 
 // Global error handler
 app.use((err, _req, res, _next) => {

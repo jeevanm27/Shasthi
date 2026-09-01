@@ -4,7 +4,8 @@ import { orderApi } from '../../api/orderApi';
 import Spinner from '../../components/ui/Spinner';
 import './Admin.css';
 
-const EMPTY = { name: '', category: 'Blends', price: '', weight: '', tag: '', description: '', available: true };
+const EMPTY = { name: '', category: 'Blends', price: '', weight: '', tag: '', description: '', image_url: '', available: true };
+
 const CATS = ['Blends', 'Powders', 'Podis', 'Pickles'];
 const money = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
 
@@ -103,17 +104,28 @@ export default function Admin() {
     return (
       <div className="admin-login-page">
         <div className="admin-login-card">
-          <div className="login-icon">🔐</div>
+          <div className="login-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+          </div>
           <h1>Admin Access</h1>
           <p>Enter your administrator key to manage the store.</p>
           <form onSubmit={handleLogin}>
-            <input type="password" placeholder="Admin key" value={key} onChange={e => setKey(e.target.value)} autoFocus required />
+            <input
+              type="password"
+              placeholder="Admin key"
+              value={key}
+              onChange={e => setKey(e.target.value)}
+              autoFocus
+              required
+            />
             {authError && <p className="form-error">{authError}</p>}
             <button type="submit" className="btn-primary full-width" disabled={authLoading}>
               {authLoading ? <Spinner size={18} /> : 'Sign in'}
             </button>
           </form>
-          <p className="admin-hint">Local demo key: <code>shasthi-admin</code></p>
         </div>
       </div>
     );
@@ -189,6 +201,15 @@ export default function Admin() {
                 </div>
                 <label>Tag<input placeholder="New / Best seller / Seasonal" value={form.tag} onChange={e => setForm(f => ({...f, tag: e.target.value}))} /></label>
                 <label className="full-label">Description<textarea rows="3" placeholder="Brief product description" value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))} /></label>
+                <label className="full-label">
+                  Image URL
+                  <input
+                    type="url"
+                    placeholder="https://images.unsplash.com/photo-xxx?w=600&auto=format"
+                    value={form.image_url}
+                    onChange={e => setForm(f => ({...f, image_url: e.target.value}))}
+                  />
+                </label>
                 <label className="checkbox-label"><input type="checkbox" checked={form.available} onChange={e => setForm(f => ({...f, available: e.target.checked}))} />Available for sale</label>
                 <div className="form-actions">
                   <button type="submit" className="btn-primary" disabled={formLoading}>
@@ -215,7 +236,7 @@ export default function Admin() {
                       <span className="order-meta">
                         <span className="order-amount">{money.format(o.total)}</span>
                         <span className="order-date">{new Date(o.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</span>
-                        <span className="order-status">Confirmed</span>
+                        <span className="order-status">{o.status || 'Confirmed'}</span>
                       </span>
                     </summary>
                     <div className="order-items">

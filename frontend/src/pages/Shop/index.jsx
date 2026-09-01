@@ -49,7 +49,8 @@ export default function Shop({ onNotify }) {
     if (paramCategory !== 'All') list = list.filter(p => p.category === paramCategory);
     if (debouncedQuery) {
       const q = debouncedQuery.toLowerCase();
-      list = list.filter(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+      list = list.filter(p => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
+
     }
     if (availOnly) list = list.filter(p => p.available);
     switch (sort) {
@@ -135,12 +136,17 @@ export default function Shop({ onNotify }) {
 
             ) : error ? (
               <div className="shop-state">
-                <p>⚠️ {error}</p>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <p>{error}</p>
                 <button onClick={() => window.location.reload()}>Try again</button>
               </div>
             ) : filtered.length === 0 ? (
               <div className="shop-state">
-                <span>🔍</span>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
                 <p>No products match your filters.</p>
                 <button onClick={() => { setQuery(''); setCategory('All'); setAvailOnly(false); }}>Clear filters</button>
               </div>

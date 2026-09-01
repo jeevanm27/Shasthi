@@ -13,7 +13,8 @@ function validateProduct(body, partial = false) {
   return null;
 }
 
-const SELECT_COLS = 'id, name, category, price, weight, tag, available, description';
+const SELECT_COLS = 'id, name, category, price, weight, tag, available, description, image_url';
+
 
 export async function listProducts(req, res, next) {
   try {
