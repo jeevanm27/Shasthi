@@ -68,7 +68,9 @@ services:
 
   # ─── User & Cart Service (Node.js) ──────────────────────────────────────────
   user-service:
-    build: ./user-service
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
     environment:
       PORT:              4000
       DATABASE_URL:      postgresql://${POSTGRES_USER:-shasthi}:${POSTGRES_PASSWORD:-shasthi-local}@postgres:5432/${POSTGRES_DB:-shasthi}
@@ -91,7 +93,9 @@ services:
 
   # ─── Catalog & Search Service (Java Spring Boot) ────────────────────────────
   catalog-service:
-    build: ./catalog-service
+    build:
+      context: ./catalog-service
+      dockerfile: Dockerfile
     environment:
       SPRING_DATASOURCE_URL:      jdbc:postgresql://postgres:5432/${POSTGRES_DB:-shasthi}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-shasthi}
@@ -111,7 +115,9 @@ services:
 
   # ─── Order & Inventory Service (Java Spring Boot) ───────────────────────────
   order-service:
-    build: ./order-service
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
     environment:
       SPRING_DATASOURCE_URL:      jdbc:postgresql://postgres:5432/${POSTGRES_DB:-shasthi}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-shasthi}
