@@ -1,55 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { useCart } from '../../context/CartContext';
-import { useAuth } from '../../context/AuthContext';
-import { orderApi } from '../../api/orderApi';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useCart } from '../../context/CartContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import './Checkout.css';
 
 const money = new Intl.NumberFormat('en-IN', {
-  style: 'currency', currency: 'INR', maximumFractionDigits: 0,
+  style: 'currency', currency: 'INR', maximumFractionDigits: 2,
 });
 
-const STEPS = ['Review order', 'Your details', 'Confirmed'];
-
-const INITIAL_FORM = {
-  name: '', email: '', phone: '',
-  address: '', city: '', pincode: '',
-};
-
-const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || '';
-
-// Dynamically load Razorpay checkout script
-function loadRazorpayScript() {
-  return new Promise((resolve) => {
-    if (window.Razorpay) { resolve(true); return; }
-    const s = document.createElement('script');
-    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    s.onload  = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.body.appendChild(s);
-  });
-}
+const STEPS = ['Review order', 'Confirm & place', 'Order placed!'];
 
 export default function Checkout({ onNotify }) {
-  const { items, subtotal, clear } = useCart();
+  const { items, cartTotal, checkout } = useCart();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [step,    setStep]    = useState(0);
-  const [form,    setForm]    = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
-  const [order,   setOrder]   = useState(null);
-
-  useEffect(() => {
-    if (user) setForm(f => ({ ...f, name: user.name || f.name, email: user.email || f.email }));
-  }, [user]);
-
-  // Preload Razorpay script when entering step 1
-  useEffect(() => {
-    if (step === 1 && RAZORPAY_KEY) loadRazorpayScript();
-  }, [step]);
-
-  const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
+  const [result,  setResult]  = useState(null); // { eventId, totalPrice }
 
   // Empty basket guard
   if (items.length === 0 && step < 2) {
@@ -69,105 +38,20 @@ export default function Checkout({ onNotify }) {
     );
   }
 
-  // --- Payment pipeline ---
-  async function initiatePayment() {
+  async function handlePlaceOrder() {
     setLoading(true);
     setError('');
-
     try {
-      // Step 1: Create Razorpay order on backend
-      const res = await fetch('/catalog/api/payments/create-order', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ amount: subtotal }),
-      });
-      const rzpOrder = await res.json();
-      if (!res.ok) throw new Error(rzpOrder.message || 'Could not initiate payment');
-
-      // Step 2: If mock (no Razorpay keys) — skip popup, go straight to order creation
-      if (rzpOrder.mock || !RAZORPAY_KEY) {
-        await createOrder({ paymentId: 'demo_payment', orderId: rzpOrder.id, verified: true });
-        return;
-      }
-
-      // Step 3: Load script and open Razorpay checkout popup
-      const loaded = await loadRazorpayScript();
-      if (!loaded) throw new Error('Could not load Razorpay. Check your connection and try again.');
-
-      const options = {
-        key:         RAZORPAY_KEY,
-        amount:      rzpOrder.amount,
-        currency:    rzpOrder.currency,
-        name:        'Shasthi Masala',
-        description: 'Artisan Spice Order',
-        order_id:    rzpOrder.id,
-        prefill:     { name: form.name, email: form.email, contact: form.phone },
-        theme:       { color: '#d96946' },
-        handler: async (response) => {
-          // Step 4: Verify payment signature on backend
-          try {
-            const vRes = await fetch('/catalog/api/payments/verify', {
-              method:  'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id:   response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature:  response.razorpay_signature,
-              }),
-            });
-            const vData = await vRes.json();
-            if (!vRes.ok || !vData.verified) throw new Error(vData.message || 'Payment verification failed');
-
-            // Step 5: Create order record
-            await createOrder({
-              paymentId: response.razorpay_payment_id,
-              orderId:   response.razorpay_order_id,
-              verified:  true,
-            });
-          } catch (err) {
-            setError(err.message);
-            setLoading(false);
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setError('Payment was cancelled. Your cart is still saved.');
-            setLoading(false);
-          },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-
+      // checkout() → calls POST /api/cart/checkout → emits Kafka → clears cart → returns { eventId, totalPrice }
+      const data = await checkout();
+      setResult(data);
+      setStep(2);
+      onNotify?.('Order placed! Processing shortly.', 'success');
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
-      setLoading(false);
-    }
-  }
-
-  // Create the final order record in order-service
-  async function createOrder({ paymentId }) {
-    try {
-      const placed = await orderApi.createOrder({
-        customerName: form.name,
-        email:        form.email,
-        paymentId,
-        items:        items.map(i => ({ productId: i.id, quantity: i.quantity })),
-      });
-      setOrder(placed);
-      clear();
-      setStep(2);
-    } catch (err) {
-      setError(err.message || 'Payment succeeded but order could not be saved. Contact support.');
     } finally {
       setLoading(false);
     }
-  }
-
-  async function handleDetailsSubmit(e) {
-    e.preventDefault();
-    await initiatePayment();
   }
 
   // Shared order summary sidebar
@@ -176,15 +60,15 @@ export default function Checkout({ onNotify }) {
       <h3>Order summary</h3>
       <div className="summary-items">
         {items.map(item => (
-          <div key={item.id} className="summary-item">
-            <span className="summary-item-name">{item.name} <em>×{item.quantity}</em></span>
-            <span>{money.format(item.price * item.quantity)}</span>
+          <div key={item.productId} className="summary-item">
+            <span className="summary-item-name">{item.productName} <em>×{item.quantityGrams}g</em></span>
+            <span>{money.format(item.pricePerGram * item.quantityGrams)}</span>
           </div>
         ))}
       </div>
       <div className="summary-total">
         <span>Total</span>
-        <strong>{money.format(subtotal)}</strong>
+        <strong>{money.format(cartTotal)}</strong>
       </div>
     </aside>
   );
@@ -217,14 +101,13 @@ export default function Checkout({ onNotify }) {
               <h1>Review your order</h1>
               <div className="review-items">
                 {items.map(item => (
-                  <div key={item.id} className="review-item">
+                  <div key={item.productId} className="review-item">
                     <div className="review-item-info">
-                      <p className="review-name">{item.name}</p>
-                      <p className="review-meta">{item.weight} &mdash; Qty {item.quantity}</p>
+                      <p className="review-name">{item.productName}</p>
+                      <p className="review-meta">{item.quantityGrams}g — ₹{parseFloat(item.pricePerGram).toFixed(2)}/g</p>
                     </div>
                     <div className="review-item-price">
-                      <span className="review-unit">{money.format(item.price)} each</span>
-                      <strong>{money.format(item.price * item.quantity)}</strong>
+                      <strong>{money.format(item.pricePerGram * item.quantityGrams)}</strong>
                     </div>
                   </div>
                 ))}
@@ -232,7 +115,7 @@ export default function Checkout({ onNotify }) {
               <div className="checkout-actions">
                 <Link to="/shop" className="btn-secondary">Edit basket</Link>
                 <button className="btn-primary" onClick={() => setStep(1)}>
-                  Continue to details
+                  Continue
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M5 12h14M12 5l7 7-7 7"/>
                   </svg>
@@ -243,128 +126,66 @@ export default function Checkout({ onNotify }) {
           </div>
         )}
 
-        {/* Step 1 — Details + Payment */}
+        {/* Step 1 — Confirm */}
         {step === 1 && (
           <div className="checkout-layout">
             <div className="checkout-main">
-              <h1>Delivery &amp; payment</h1>
-              <form className="checkout-form" onSubmit={handleDetailsSubmit} noValidate>
-                <fieldset>
-                  <legend>Contact information</legend>
-                  <div className="form-row">
-                    <label>
-                      Full name
-                      <input required type="text" autoComplete="name" placeholder="Ananya Rao"
-                        value={form.name} onChange={set('name')} />
-                    </label>
-                    <label>
-                      Email address
-                      <input required type="email" autoComplete="email" placeholder="ananya@example.com"
-                        value={form.email} onChange={set('email')} />
-                    </label>
-                  </div>
-                  <label>
-                    Phone number
-                    <input type="tel" autoComplete="tel" placeholder="+91 98765 43210"
-                      value={form.phone} onChange={set('phone')} />
-                  </label>
-                </fieldset>
+              <h1>Confirm your order</h1>
+              <div className="payment-notice">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <span>
+                  Placing as <strong>{user?.email}</strong>.
+                  Your order will be processed asynchronously via our order system.
+                </span>
+              </div>
 
-                <fieldset>
-                  <legend>Delivery address</legend>
-                  <label>
-                    Street address
-                    <input type="text" autoComplete="street-address" placeholder="12, Anna Nagar, 3rd Street"
-                      value={form.address} onChange={set('address')} />
-                  </label>
-                  <div className="form-row">
-                    <label>
-                      City
-                      <input type="text" autoComplete="address-level2" placeholder="Chennai"
-                        value={form.city} onChange={set('city')} />
-                    </label>
-                    <label>
-                      PIN code
-                      <input type="text" inputMode="numeric" autoComplete="postal-code" placeholder="600001"
-                        value={form.pincode} onChange={set('pincode')} />
-                    </label>
-                  </div>
-                </fieldset>
+              {error && <p className="form-error" role="alert">{error}</p>}
 
-                {/* Payment notice */}
-                <div className="payment-notice">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="1" y="4" width="22" height="16" rx="2"/>
-                    <line x1="1" y1="10" x2="23" y2="10"/>
-                  </svg>
-                  <span>Secure payment via <strong>Razorpay</strong> — UPI, cards, net banking accepted</span>
-                </div>
-
-                {error && <p className="form-error" role="alert">{error}</p>}
-
-                <div className="checkout-actions">
-                  <button type="button" className="btn-secondary" onClick={() => { setStep(0); setError(''); }}>
-                    Back
-                  </button>
-                  <button type="submit" className="btn-primary pay-btn" disabled={loading}>
-                    {loading ? (
-                      <span className="pay-loading">
-                        <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                        Processing…
-                      </span>
-                    ) : (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="1" y="4" width="22" height="16" rx="2"/>
-                          <line x1="1" y1="10" x2="23" y2="10"/>
-                        </svg>
-                        Pay {money.format(subtotal)}
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
+              <div className="checkout-actions">
+                <button type="button" className="btn-secondary" onClick={() => { setStep(0); setError(''); }}>
+                  Back
+                </button>
+                <button className="btn-primary pay-btn" disabled={loading} onClick={handlePlaceOrder}>
+                  {loading ? (
+                    <span className="pay-loading">
+                      <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                      Processing…
+                    </span>
+                  ) : (
+                    <>Place order — {money.format(cartTotal)}</>
+                  )}
+                </button>
+              </div>
             </div>
             <OrderSummary />
           </div>
         )}
 
         {/* Step 2 — Confirmed */}
-        {step === 2 && order && (
+        {step === 2 && (
           <div className="checkout-confirmed">
             <div className="confirmed-icon">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
             </div>
-            <h1>Order confirmed</h1>
+            <h1>Order placed!</h1>
             <p className="confirmed-sub">
-              Thank you, <strong>{order.customerName}</strong>. Your payment was successful and your order is being prepared.
+              Your order has been received and is being processed.
             </p>
-            <div className="confirmed-id">
-              Order reference: <code>#{order.id.slice(0, 8).toUpperCase()}</code>
-            </div>
-
-            <div className="confirmed-items">
-              <h3>Items ordered</h3>
-              {order.items.map(item => (
-                <div key={item.productId} className="confirmed-item">
-                  <span>{item.name} <em>×{item.quantity}</em></span>
-                  <span>{money.format(item.unitPrice * item.quantity)}</span>
-                </div>
-              ))}
-              <div className="confirmed-total">
-                <span>Total paid</span>
-                <strong>{money.format(order.total)}</strong>
+            {result?.eventId && (
+              <div className="confirmed-id">
+                Reference: <code>{result.eventId.slice(0, 8).toUpperCase()}</code>
               </div>
-            </div>
-
+            )}
             <p className="confirmed-note">
-              A confirmation will be sent to <strong>{order.email}</strong>.
+              Check <strong>My Orders</strong> for status updates — delivery typically 2–5 business days.
             </p>
             <div className="confirmed-actions">
               <Link to="/orders" className="btn-secondary">View my orders</Link>
-              <Link to="/shop"   className="btn-primary">Continue shopping</Link>
+              <Link to="/shop" className="btn-primary">Continue shopping</Link>
             </div>
           </div>
         )}

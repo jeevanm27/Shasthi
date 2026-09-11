@@ -1,21 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCart } from '../../context/CartContext';
-import { insightsApi } from '../../api/insightsApi';
+import { useCart } from '../../context/CartContext.jsx';
 import './CartDrawer.css';
 
 const money = new Intl.NumberFormat('en-IN', {
-  style: 'currency', currency: 'INR', maximumFractionDigits: 0,
+  style: 'currency', currency: 'INR', maximumFractionDigits: 2,
 });
 
 export default function CartDrawer({ open, onClose }) {
   const {
-    items, itemCount, subtotalFormatted,
-    updateQty, remove,
-    insight, setInsight, clearInsight,
+    items, cartCount, cartTotal,
+    updateItem, removeItem,
   } = useCart();
 
-  const [loadingInsight, setLoadingInsight] = useState(false);
   const navigate = useNavigate();
 
   // Lock body scroll when open
@@ -31,19 +28,6 @@ export default function CartDrawer({ open, onClose }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
-
-  async function handleInsight() {
-    if (!items.length) return;
-    setLoadingInsight(true);
-    try {
-      const data = await insightsApi.getCartInsight(items);
-      setInsight(data.message);
-    } catch {
-      setInsight('Our pantry tip service is taking a short break.');
-    } finally {
-      setLoadingInsight(false);
-    }
-  }
 
   function handleCheckout() {
     onClose();
@@ -67,8 +51,8 @@ export default function CartDrawer({ open, onClose }) {
         <div className="drawer-header">
           <div>
             <h2>Your Basket</h2>
-            {itemCount > 0 && (
-              <span className="drawer-count">{itemCount} item{itemCount !== 1 ? 's' : ''}</span>
+            {cartCount > 0 && (
+              <span className="drawer-count">{cartCount} item{cartCount !== 1 ? 's' : ''}</span>
             )}
           </div>
           <button className="drawer-close" onClick={onClose} aria-label="Close cart">
@@ -94,67 +78,42 @@ export default function CartDrawer({ open, onClose }) {
               <button className="btn-secondary" onClick={onClose}>Browse products</button>
             </div>
           ) : (
-            <>
-              <ul className="cart-list">
-                {items.map(item => (
-                  <li key={item.id} className="cart-item">
-                    <div className="cart-item-info">
-                      <p className="cart-item-name">{item.name}</p>
-                      <p className="cart-item-price">{money.format(item.price)} each</p>
-                    </div>
-                    <div className="cart-item-controls">
-                      <div className="qty-control">
-                        <button
-                          onClick={() => updateQty(item.id, item.quantity - 1)}
-                          aria-label="Decrease quantity"
-                        >−</button>
-                        <span>{item.quantity}</span>
-                        <button
-                          onClick={() => updateQty(item.id, item.quantity + 1)}
-                          aria-label="Increase quantity"
-                        >+</button>
-                      </div>
-                      <button
-                        className="remove-btn"
-                        onClick={() => remove(item.id)}
-                        aria-label={`Remove ${item.name}`}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" strokeWidth="2">
-                          <line x1="18" y1="6" x2="6" y2="18"/>
-                          <line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Pantry tip */}
-              {insight ? (
-                <div className="insight-box">
-                  <div className="insight-header">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10"/>
-                      <line x1="12" y1="8" x2="12" y2="12"/>
-                      <line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
-                    <span className="insight-label">Pantry tip</span>
+            <ul className="cart-list">
+              {items.map(item => (
+                <li key={item.productId} className="cart-item">
+                  <div className="cart-item-info">
+                    <p className="cart-item-name">{item.productName}</p>
+                    <p className="cart-item-price">
+                      ₹{parseFloat(item.pricePerGram).toFixed(2)}/g — {item.quantityGrams}g
+                    </p>
                   </div>
-                  <p>{insight}</p>
-                  <button className="insight-dismiss" onClick={clearInsight}>Dismiss</button>
-                </div>
-              ) : (
-                <button
-                  className="insight-btn"
-                  onClick={handleInsight}
-                  disabled={loadingInsight}
-                >
-                  {loadingInsight ? 'Getting tip…' : 'Get a pantry tip'}
-                </button>
-              )}
-            </>
+                  <div className="cart-item-controls">
+                    <div className="qty-control">
+                      <button
+                        onClick={() => updateItem(item.productId, Math.max(10, item.quantityGrams - 10))}
+                        aria-label="Decrease quantity"
+                      >−</button>
+                      <span>{item.quantityGrams}g</span>
+                      <button
+                        onClick={() => updateItem(item.productId, item.quantityGrams + 10)}
+                        aria-label="Increase quantity"
+                      >+</button>
+                    </div>
+                    <button
+                      className="remove-btn"
+                      onClick={() => removeItem(item.productId)}
+                      aria-label={`Remove ${item.productName}`}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 
@@ -163,9 +122,9 @@ export default function CartDrawer({ open, onClose }) {
           <div className="drawer-footer">
             <div className="drawer-subtotal">
               <span>Subtotal</span>
-              <strong>{subtotalFormatted}</strong>
+              <strong>{money.format(cartTotal)}</strong>
             </div>
-            <p className="drawer-note">Taxes and delivery calculated at checkout</p>
+            <p className="drawer-note">Calculated per gram — quantity adjusts in steps of 10g</p>
             <button className="btn-primary full-width" onClick={handleCheckout}>
               Proceed to checkout
             </button>

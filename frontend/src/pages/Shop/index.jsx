@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { catalogApi } from '../../api/catalogApi';
-import ProductCard from '../../components/product/ProductCard';
-import { ProductCardSkeleton } from '../../components/ui/Skeleton';
+import { catalogApi } from '../../api/catalog.js';
+import { useCart } from '../../context/CartContext.jsx';
+import ProductCard from '../../components/product/ProductCard.jsx';
+import { ProductCardSkeleton } from '../../components/ui/Skeleton.jsx';
 import './Shop.css';
-
 
 const CATEGORIES = ['All', 'Blends', 'Powders', 'Podis', 'Pickles'];
 const SORT_OPTIONS = [
@@ -18,11 +18,12 @@ export default function Shop({ onNotify }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState(null);
-  const [query,  setQuery]  = useState('');
-  const [sort,   setSort]   = useState('featured');
+  const [error,   setError]   = useState(null);
+  const [query,   setQuery]   = useState('');
+  const [sort,    setSort]    = useState('featured');
   const [availOnly, setAvailOnly] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const { addItem } = useCart();
 
   const paramCategory = searchParams.get('category') || 'All';
 
@@ -31,14 +32,23 @@ export default function Shop({ onNotify }) {
     return () => clearTimeout(t);
   }, [query]);
 
+  // Use Redis search when there's a query, else fetch all
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    catalogApi.getProducts()
-      .then(setAllProducts)
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
+    if (debouncedQuery.trim()) {
+      setLoading(true);
+      catalogApi.searchProducts(debouncedQuery.trim())
+        .then(products => setAllProducts(Array.isArray(products) ? products : []))
+        .catch(err => setError(err.message))
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(true);
+      setError(null);
+      catalogApi.getProducts(1, 100)
+        .then(({ products }) => setAllProducts(products || []))
+        .catch(err => setError(err.message))
+        .finally(() => setLoading(false));
+    }
+  }, [debouncedQuery]);
 
   const setCategory = useCallback((cat) => {
     cat === 'All' ? setSearchParams({}) : setSearchParams({ category: cat });
@@ -47,20 +57,24 @@ export default function Shop({ onNotify }) {
   const filtered = useMemo(() => {
     let list = [...allProducts];
     if (paramCategory !== 'All') list = list.filter(p => p.category === paramCategory);
-    if (debouncedQuery) {
-      const q = debouncedQuery.toLowerCase();
-      list = list.filter(p => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
-
-    }
     if (availOnly) list = list.filter(p => p.available);
     switch (sort) {
-      case 'price-asc':  list.sort((a, b) => a.price - b.price); break;
-      case 'price-desc': list.sort((a, b) => b.price - a.price); break;
+      case 'price-asc':  list.sort((a, b) => a.pricePerGram - b.pricePerGram); break;
+      case 'price-desc': list.sort((a, b) => b.pricePerGram - a.pricePerGram); break;
       case 'name-asc':   list.sort((a, b) => a.name.localeCompare(b.name)); break;
       default: break;
     }
     return list;
-  }, [allProducts, paramCategory, debouncedQuery, availOnly, sort]);
+  }, [allProducts, paramCategory, availOnly, sort]);
+
+  async function handleAdd(product) {
+    try {
+      await addItem(product, 100);
+      onNotify?.(`${product.name} added!`, 'info');
+    } catch (err) {
+      onNotify?.(err.message || 'Could not add to basket', 'error');
+    }
+  }
 
   return (
     <div className="shop-page">
@@ -107,7 +121,7 @@ export default function Shop({ onNotify }) {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input
                   type="search"
-                  placeholder="Search spices…"
+                  placeholder="Search spices… (Redis powered)"
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   aria-label="Search products"
@@ -133,7 +147,6 @@ export default function Shop({ onNotify }) {
               <div className="shop-grid">
                 {Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
               </div>
-
             ) : error ? (
               <div className="shop-state">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -155,7 +168,7 @@ export default function Shop({ onNotify }) {
                 <p className="result-count">{filtered.length} product{filtered.length !== 1 ? 's' : ''}</p>
                 <div className="shop-grid">
                   {filtered.map(p => (
-                    <ProductCard key={p.id} product={p} onAdd={() => onNotify?.(`${p.name} added!`, 'info')} />
+                    <ProductCard key={p.id} product={p} onAdd={() => handleAdd(p)} />
                   ))}
                 </div>
               </>

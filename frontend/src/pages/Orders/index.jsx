@@ -1,13 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { orderApi } from '../../api/orderApi';
-import Spinner from '../../components/ui/Spinner';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { ordersApi } from '../../api/orders.js';
+import Spinner from '../../components/ui/Spinner.jsx';
 import './Orders.css';
 
 const money = new Intl.NumberFormat('en-IN', {
-  style: 'currency', currency: 'INR', maximumFractionDigits: 0,
+  style: 'currency', currency: 'INR', maximumFractionDigits: 2,
 });
+
+const STATUS_COLOR = {
+  PENDING:    '#f59e0b',
+  PROCESSING: '#3b82f6',
+  SHIPPED:    '#8b5cf6',
+  DELIVERED:  '#10b981',
+  CANCELLED:  '#ef4444',
+};
 
 function formatDate(str) {
   return new Date(str).toLocaleDateString('en-IN', {
@@ -16,18 +24,17 @@ function formatDate(str) {
 }
 
 export default function Orders() {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [orders,  setOrders]  = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
 
   useEffect(() => {
-    if (!token) return;
-    orderApi.myOrders(token)
+    ordersApi.getMyOrders()
       .then(setOrders)
-      .catch(err => setError(err.message))
+      .catch(err => setError(err.message || 'Could not load orders'))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, []);
 
   return (
     <div className="orders-page">
@@ -80,8 +87,13 @@ export default function Orders() {
                     <span className="order-date">{formatDate(order.createdAt)}</span>
                   </div>
                   <div className="order-meta">
-                    <span className="order-total-val">{money.format(order.total)}</span>
-                    <span className="order-badge">{order.status || 'Confirmed'}</span>
+                    <span className="order-total-val">{money.format(order.totalPrice)}</span>
+                    <span
+                      className="order-badge"
+                      style={{ backgroundColor: STATUS_COLOR[order.status] || '#6b7280' }}
+                    >
+                      {order.status}
+                    </span>
                     <svg className="expand-icon" width="16" height="16" viewBox="0 0 24 24"
                       fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M6 9l6 6 6-6"/>
@@ -90,18 +102,18 @@ export default function Orders() {
                 </summary>
 
                 <div className="order-items">
-                  {order.items.map(item => (
-                    <div key={item.productId} className="order-item-row">
+                  {(order.items || []).map(item => (
+                    <div key={item.id} className="order-item-row">
                       <div className="order-item-info">
-                        <span className="item-name">{item.name}</span>
-                        <span className="item-qty">Qty: {item.quantity}</span>
+                        <span className="item-name">{item.productName}</span>
+                        <span className="item-qty">{item.quantityGrams}g @ ₹{parseFloat(item.priceLocked).toFixed(2)}/g</span>
                       </div>
-                      <span className="item-price">{money.format(item.unitPrice * item.quantity)}</span>
+                      <span className="item-price">{money.format(item.priceLocked * item.quantityGrams)}</span>
                     </div>
                   ))}
                   <div className="order-total-row">
                     <span>Total</span>
-                    <strong>{money.format(order.total)}</strong>
+                    <strong>{money.format(order.totalPrice)}</strong>
                   </div>
                 </div>
               </details>

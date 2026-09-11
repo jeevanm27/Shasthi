@@ -4,9 +4,11 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { CartProvider }          from './context/CartContext.jsx';
 
 // Layout components
-import Header     from './components/layout/Header.jsx';
+import Header    from './components/layout/Header.jsx';
+import Footer    from './components/layout/Footer.jsx';
 import CartDrawer from './components/cart/CartDrawer.jsx';
-import Toast      from './components/ui/Toast.jsx';
+import AuthModal from './components/auth/AuthModal.jsx';
+import Toast     from './components/ui/Toast.jsx';
 
 // Customer pages
 import Home     from './pages/home/index.jsx';
@@ -16,25 +18,18 @@ import Orders   from './pages/Orders/index.jsx';
 import NotFound from './pages/NotFound/index.jsx';
 
 // Admin pages
-import AdminLayout  from './pages/admin/AdminLayout.jsx';
+import AdminLayout   from './pages/admin/AdminLayout.jsx';
 import AdminProducts from './pages/admin/Products.jsx';
-import AdminOrders  from './pages/admin/Orders.jsx';
+import AdminOrders   from './pages/admin/Orders.jsx';
 
 import './styles/global.css';
 
-/**
- * Route guard: redirects to home if not ADMIN
- */
 function AdminRoute({ children }) {
   const { isLoggedIn, isAdmin } = useAuth();
-  if (!isLoggedIn) return <Navigate to="/" replace />;
-  if (!isAdmin)   return <Navigate to="/" replace />;
+  if (!isLoggedIn || !isAdmin) return <Navigate to="/" replace />;
   return children;
 }
 
-/**
- * Route guard: redirects to home if not logged in
- */
 function ProtectedRoute({ children }) {
   const { isLoggedIn } = useAuth();
   if (!isLoggedIn) return <Navigate to="/" replace />;
@@ -42,21 +37,26 @@ function ProtectedRoute({ children }) {
 }
 
 function AppShell() {
-  const [cartOpen, setCartOpen] = useState(false);
-  const [toast,    setToast]    = useState({ message: '', type: 'info' });
+  const [cartOpen,  setCartOpen]  = useState(false);
+  const [authOpen,  setAuthOpen]  = useState(false);
+  const [authTab,   setAuthTab]   = useState('login');
+  const [toast,     setToast]     = useState({ message: '', type: 'info' });
 
   const notify    = useCallback((message, type = 'info') => setToast({ message, type }), []);
   const openCart  = useCallback(() => setCartOpen(true),  []);
   const closeCart = useCallback(() => setCartOpen(false), []);
+  const openAuth  = useCallback((tab = 'login') => { setAuthTab(tab); setAuthOpen(true); }, []);
+  const closeAuth = useCallback(() => setAuthOpen(false), []);
 
   return (
     <>
-      <Header onCartOpen={openCart} />
+      <Header onCartOpen={openCart} onAuthOpen={openAuth} />
       <CartDrawer open={cartOpen} onClose={closeCart} />
+      <AuthModal  open={authOpen} onClose={closeAuth} defaultTab={authTab} />
 
       <Routes>
-        {/* ── Customer Storefront ────────────────────────────────────────── */}
-        <Route path="/"         element={<Home     onNotify={notify} />} />
+        {/* ── Customer Storefront ───────────────────────────────────────── */}
+        <Route path="/"         element={<Home     onNotify={notify} onAuthOpen={openAuth} />} />
         <Route path="/shop"     element={<Shop     onNotify={notify} />} />
         <Route path="/shop/:id" element={<Shop     onNotify={notify} />} />
         <Route path="/checkout" element={
@@ -66,7 +66,7 @@ function AppShell() {
           <ProtectedRoute><Orders onNotify={notify} /></ProtectedRoute>
         } />
 
-        {/* ── Admin Dashboard ────────────────────────────────────────────── */}
+        {/* ── Admin Dashboard ───────────────────────────────────────────── */}
         <Route path="/admin" element={
           <AdminRoute><AdminLayout /></AdminRoute>
         }>
@@ -75,9 +75,11 @@ function AppShell() {
           <Route path="orders"   element={<AdminOrders   onNotify={notify} />} />
         </Route>
 
-        {/* ── Fallback ───────────────────────────────────────────────────── */}
+        {/* ── Fallback ──────────────────────────────────────────────────── */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+
+      <Footer />
 
       <Toast
         message={toast.message}

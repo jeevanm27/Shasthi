@@ -1,11 +1,9 @@
-import { useCart } from '../../context/CartContext';
 import './ProductCard.css';
 
 const money = new Intl.NumberFormat('en-IN', {
-  style: 'currency', currency: 'INR', maximumFractionDigits: 0,
+  style: 'currency', currency: 'INR', maximumFractionDigits: 2,
 });
 
-// Category accent colours for the fallback placeholder
 const CATEGORY_COLOR = {
   Blends:  '#c55237',
   Powders: '#b9782d',
@@ -13,23 +11,20 @@ const CATEGORY_COLOR = {
   Pickles: '#557442',
 };
 
+/**
+ * ProductCard — stateless. All add-to-cart logic lives in parent (home/shop).
+ * onAdd is called with no arguments; parent handles addItem() with appropriate grams.
+ */
 export default function ProductCard({ product, onAdd }) {
-  const { add } = useCart();
-
-  function handleAdd() {
-    add(product);
-    if (onAdd) onAdd(product);
-  }
-
   const accentColor = CATEGORY_COLOR[product.category] || '#d96946';
 
   return (
     <article className="product-card">
       {/* Product image */}
       <div className="product-image-wrap" style={{ '--accent': accentColor }}>
-        {product.image_url ? (
+        {product.imageUrl ? (
           <img
-            src={product.image_url}
+            src={product.imageUrl}
             alt={product.name}
             className="product-image"
             loading="lazy"
@@ -42,12 +37,12 @@ export default function ProductCard({ product, onAdd }) {
         {/* Fallback shown when no image or image fails to load */}
         <div
           className="product-image-fallback"
-          style={{ display: product.image_url ? 'none' : 'flex' }}
+          style={{ display: product.imageUrl ? 'none' : 'flex' }}
         >
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" strokeWidth="1.5">
             <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
           </svg>
-          <span>{product.name.split(' ').slice(0,2).join(' ')}</span>
+          <span>{product.name.split(' ').slice(0, 2).join(' ')}</span>
         </div>
         {/* Category badge */}
         <span className="product-category-badge">{product.category}</span>
@@ -55,20 +50,24 @@ export default function ProductCard({ product, onAdd }) {
 
       {/* Product info */}
       <div className="product-info">
-        {product.tag && <span className="product-tag">{product.tag}</span>}
         <h3 className="product-name">{product.name}</h3>
         <p className="product-desc">{product.description}</p>
         <div className="product-footer">
           <div className="product-price">
-            <strong>{money.format(product.price)}</strong>
-            <small>{product.weight}</small>
+            <strong>₹{parseFloat(product.pricePerGram).toFixed(2)}</strong>
+            <small>/gram</small>
           </div>
+          {product.stockQuantity != null && (
+            <small className="product-stock">
+              {product.stockQuantity > 0 ? `${product.stockQuantity}g left` : 'Out of stock'}
+            </small>
+          )}
           <button
-            className={`add-btn${!product.available ? ' sold-out' : ''}`}
-            disabled={!product.available}
-            onClick={handleAdd}
+            className={`add-btn${!product.available || product.stockQuantity === 0 ? ' sold-out' : ''}`}
+            disabled={!product.available || product.stockQuantity === 0}
+            onClick={onAdd}
           >
-            {product.available ? 'Add to cart' : 'Sold out'}
+            {product.available && product.stockQuantity !== 0 ? 'Add to cart' : 'Sold out'}
           </button>
         </div>
       </div>

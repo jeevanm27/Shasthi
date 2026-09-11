@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { catalogApi } from '../../api/catalogApi';
-import { useCart } from '../../context/CartContext';
-import ProductCard from '../../components/product/ProductCard';
-import { ProductCardSkeleton } from '../../components/ui/Skeleton';
-import './Home.css';
-
+import { catalogApi } from '../../api/catalog.js';
+import { useCart } from '../../context/CartContext.jsx';
+import ProductCard from '../../components/product/ProductCard.jsx';
+import { ProductCardSkeleton } from '../../components/ui/Skeleton.jsx';
+import './home.css';
 
 const CATEGORIES = [
   { name: 'Blends',  icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>, desc: 'Classic masala mixes' },
@@ -20,25 +19,28 @@ const TRUST = [
   { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>, title: 'Family Recipe', desc: 'Passed down across generations of South Indian cooking.' },
 ];
 
-
 export default function Home({ onNotify }) {
   const [bestSellers, setBestSellers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { add } = useCart();
+  const { addItem, isLoggedIn } = useCart();
 
   useEffect(() => {
-    catalogApi.getProducts()
-      .then(products => {
-        const sellers = products.filter(p => p.available).slice(0, 4);
+    catalogApi.getProducts(1, 8)
+      .then(({ products }) => {
+        const sellers = (products || []).filter(p => p.available).slice(0, 4);
         setBestSellers(sellers);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  function handleAdd(product) {
-    add(product);
-    if (onNotify) onNotify(`${product.name} added to basket!`, 'info');
+  async function handleAdd(product) {
+    try {
+      await addItem(product, 100); // default 100g
+      onNotify?.(`${product.name} added to basket!`, 'info');
+    } catch (err) {
+      onNotify?.(err.message || 'Could not add item', 'error');
+    }
   }
 
   return (
@@ -72,7 +74,6 @@ export default function Home({ onNotify }) {
                 </div>
                 <svg className="cat-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </Link>
-
             ))}
           </div>
         </div>
@@ -93,7 +94,6 @@ export default function Home({ onNotify }) {
               {Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)}
             </div>
           ) : (
-
             <div className="home-products-grid">
               {bestSellers.map(p => (
                 <ProductCard key={p.id} product={p} onAdd={() => handleAdd(p)} />
@@ -118,7 +118,6 @@ export default function Home({ onNotify }) {
             <div className="story-card story-card--2">No<br/>Additives</div>
             <div className="story-card story-card--3">Farm<br/>Sourced</div>
           </div>
-
         </div>
       </section>
 

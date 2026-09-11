@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { useCart } from '../../context/CartContext';
-import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import './Header.css';
 
 export default function Header({ onCartOpen, onAuthOpen }) {
-  const { itemCount }              = useCart();
-  const { user, isAuthed, logout } = useAuth();
+  const { cartCount }              = useCart();
+  const { user, isLoggedIn, isAdmin, logout } = useAuth();
   const [scrolled,     setScrolled]     = useState(false);
   const [menuOpen,     setMenuOpen]     = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -26,7 +26,7 @@ export default function Header({ onCartOpen, onAuthOpen }) {
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-    : '';
+    : user?.email?.[0]?.toUpperCase() || '?';
 
   return (
     <header className={`site-header${scrolled ? ' scrolled' : ''}`}>
@@ -39,24 +39,27 @@ export default function Header({ onCartOpen, onAuthOpen }) {
           <NavLink to="/" end onClick={() => setMenuOpen(false)}>Home</NavLink>
           <NavLink to="/shop" onClick={() => setMenuOpen(false)}>Shop</NavLink>
           <a href="/#story" onClick={() => setMenuOpen(false)}>Our Story</a>
-          {isAuthed && (
+          {isLoggedIn && (
             <NavLink to="/orders" onClick={() => setMenuOpen(false)}>My Orders</NavLink>
+          )}
+          {isAdmin && (
+            <NavLink to="/admin" onClick={() => setMenuOpen(false)}>Admin</NavLink>
           )}
         </nav>
 
         <div className="header-actions">
           {/* Cart */}
-          <button className="cart-btn" onClick={onCartOpen} aria-label={`Open cart, ${itemCount} items`}>
+          <button className="cart-btn" onClick={onCartOpen} aria-label={`Open cart, ${cartCount} items`}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
               <line x1="3" y1="6" x2="21" y2="6"/>
               <path d="M16 10a4 4 0 01-8 0"/>
             </svg>
-            {itemCount > 0 && <span className="cart-badge">{itemCount}</span>}
+            {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
 
           {/* Auth */}
-          {isAuthed ? (
+          {isLoggedIn ? (
             <div className="user-menu-wrap" onClick={e => e.stopPropagation()}>
               <button
                 className="user-avatar-btn"
@@ -68,12 +71,17 @@ export default function Header({ onCartOpen, onAuthOpen }) {
               </button>
               {userMenuOpen && (
                 <div className="user-dropdown">
-                  <p className="user-name">{user.name}</p>
+                  <p className="user-name">{user.name || 'User'}</p>
                   <p className="user-email">{user.email}</p>
                   <hr />
                   <Link to="/orders" className="dropdown-item" onClick={() => setUserMenuOpen(false)}>
                     My Orders
                   </Link>
+                  {isAdmin && (
+                    <Link to="/admin" className="dropdown-item" onClick={() => setUserMenuOpen(false)}>
+                      Admin Dashboard
+                    </Link>
+                  )}
                   <button className="dropdown-item danger" onClick={() => { logout(); setUserMenuOpen(false); }}>
                     Sign out
                   </button>
@@ -81,7 +89,7 @@ export default function Header({ onCartOpen, onAuthOpen }) {
               )}
             </div>
           ) : (
-            <button className="sign-in-btn" onClick={onAuthOpen}>Sign in</button>
+            <button className="sign-in-btn" onClick={() => onAuthOpen?.('login')}>Sign in</button>
           )}
 
           {/* Hamburger */}
