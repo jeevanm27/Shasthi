@@ -1,83 +1,89 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { cartApi } from '../api/cart.js';
+import { useAuth } from './AuthContext.jsx';
 
 const CartContext = createContext(null);
-const STORAGE_KEY = 'shasthi_cart';
-
-const money = new Intl.NumberFormat('en-IN', {
-  style: 'currency', currency: 'INR', maximumFractionDigits: 0,
-});
-
-function cartReducer(state, action) {
-  switch (action.type) {
-    case 'ADD': {
-      const existing = state.items.find(i => i.id === action.product.id);
-      if (existing) {
-        return { ...state, items: state.items.map(i =>
-          i.id === action.product.id ? { ...i, quantity: i.quantity + 1 } : i
-        )};
-      }
-      return { ...state, items: [...state.items, { ...action.product, quantity: 1 }] };
-    }
-    case 'REMOVE':
-      return { ...state, items: state.items.filter(i => i.id !== action.id) };
-    case 'UPDATE_QTY':
-      if (action.quantity < 1) {
-        return { ...state, items: state.items.filter(i => i.id !== action.id) };
-      }
-      return { ...state, items: state.items.map(i =>
-        i.id === action.id ? { ...i, quantity: action.quantity } : i
-      )};
-    case 'CLEAR':
-      return { items: [], insight: null };
-    case 'SET_INSIGHT':
-      return { ...state, insight: action.insight };
-    case 'CLEAR_INSIGHT':
-      return { ...state, insight: null };
-    default:
-      return state;
-  }
-}
-
-function loadCart() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
-  } catch { /* ignore */ }
-  return { items: [], insight: null };
-}
 
 export function CartProvider({ children }) {
-  const [state, dispatch] = useReducer(cartReducer, null, loadCart);
+  const { isLoggedIn } = useAuth();
+  const [items,    setItems]    = useState([]);
+  const [loading,  setLoading]  = useState(false);
 
-  // Persist cart to localStorage on every change
+  // ── Sync cart from Redis when user logs in ────────────────────────────────
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch { /* ignore */ }
-  }, [state]);
+    if (!isLoggedIn) { setItems([]); return; }
+    setLoading(true);
+    cartApi.getCart()
+      .then(({ items: serverItems }) => setItems(serverItems || []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, [isLoggedIn]);
 
-  const subtotal = state.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const itemCount = state.items.reduce((sum, i) => sum + i.quantity, 0);
+  // ── Add item ──────────────────────────────────────────────────────────────
+  const addItem = useCallback(async (product, quantityGrams) => {
+    const item = {
+      productId:     product.id,
+      productName:   product.name,
+      pricePerGram:  parseFloat(product.pricePerGram),
+      quantityGrams: parseInt(quantityGrams, 10),
+      imageUrl:      product.imageUrl || null,
+    };
+    await cartApi.addItem(item);
+    // Optimistic update
+    setItems(prev => {
+      const existing = prev.findIndex(i => i.productId === product.id);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = { ...updated[existing], quantityGrams };
+        return updated;
+      }
+      return [...prev, item];
+    });
+  }, []);
 
-  const value = {
-    items:     state.items,
-    insight:   state.insight,
-    subtotal,
-    itemCount,
-    subtotalFormatted: money.format(subtotal),
-    add:          (product) => dispatch({ type: 'ADD', product }),
-    remove:       (id)      => dispatch({ type: 'REMOVE', id }),
-    updateQty:    (id, quantity) => dispatch({ type: 'UPDATE_QTY', id, quantity }),
-    clear:        ()        => dispatch({ type: 'CLEAR' }),
-    setInsight:   (insight) => dispatch({ type: 'SET_INSIGHT', insight }),
-    clearInsight: ()        => dispatch({ type: 'CLEAR_INSIGHT' }),
-  };
+  // ── Update quantity ───────────────────────────────────────────────────────
+  const updateItem = useCallback(async (productId, quantityGrams) => {
+    await cartApi.updateItem(productId, quantityGrams);
+    setItems(prev =>
+      prev.map(i => i.productId === productId ? { ...i, quantityGrams } : i)
+    );
+  }, []);
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  // ── Remove item ───────────────────────────────────────────────────────────
+  const removeItem = useCallback(async (productId) => {
+    await cartApi.removeItem(productId);
+    setItems(prev => prev.filter(i => i.productId !== productId));
+  }, []);
+
+  // ── Clear cart ────────────────────────────────────────────────────────────
+  const clearCart = useCallback(async () => {
+    await cartApi.clearCart();
+    setItems([]);
+  }, []);
+
+  // ── Checkout → emits Kafka event ──────────────────────────────────────────
+  const checkout = useCallback(async () => {
+    const result = await cartApi.checkout();
+    setItems([]);  // cart cleared by server, reflect locally
+    return result; // { eventId, totalPrice, itemCount }
+  }, []);
+
+  // ── Derived ───────────────────────────────────────────────────────────────
+  const cartCount = items.reduce((sum, i) => sum + 1, 0);
+  const cartTotal = items.reduce((sum, i) => sum + i.pricePerGram * i.quantityGrams, 0);
+
+  return (
+    <CartContext.Provider value={{
+      items, loading, cartCount, cartTotal,
+      addItem, updateItem, removeItem, clearCart, checkout
+    }}>
+      {children}
+    </CartContext.Provider>
+  );
 }
 
 export function useCart() {
   const ctx = useContext(CartContext);
-  if (!ctx) throw new Error('useCart must be used inside <CartProvider>');
+  if (!ctx) throw new Error('useCart must be used within CartProvider');
   return ctx;
 }

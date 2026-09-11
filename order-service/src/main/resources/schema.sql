@@ -1,10 +1,31 @@
-CREATE TABLE IF NOT EXISTS customer_orders (
-  id VARCHAR(36) PRIMARY KEY, status VARCHAR(32) NOT NULL, customer_name VARCHAR(120) NOT NULL,
-  email VARCHAR(254) NOT NULL, total NUMERIC(10, 2) NOT NULL CHECK (total >= 0), created_at TIMESTAMPTZ NOT NULL
+-- ── order_status ENUM (guarded for repeated runs) ───────────────────────────
+DO $$ BEGIN
+  CREATE TYPE order_status AS ENUM ('PENDING','PROCESSING','SHIPPED','DELIVERED','CANCELLED');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+-- ── orders table ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS orders (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id    TEXT UNIQUE NOT NULL,             -- Kafka eventId, prevents duplicate processing
+  user_id     UUID NOT NULL,
+  user_email  TEXT NOT NULL,
+  total_price NUMERIC(12,2) NOT NULL,
+  status      order_status NOT NULL DEFAULT 'PENDING',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ── order_items table ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS order_items (
-  id BIGSERIAL PRIMARY KEY, order_id VARCHAR(36) NOT NULL REFERENCES customer_orders(id) ON DELETE CASCADE,
-  product_id VARCHAR(120) NOT NULL, name VARCHAR(200) NOT NULL, quantity INTEGER NOT NULL CHECK (quantity > 0),
-  unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price >= 0)
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id       UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  product_id     UUID NOT NULL,
+  product_name   TEXT NOT NULL,
+  quantity_grams INTEGER NOT NULL CHECK (quantity_grams > 0),
+  price_locked   NUMERIC(10,4) NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_customer_orders_created_at ON customer_orders(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_orders_user_id   ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status     ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);

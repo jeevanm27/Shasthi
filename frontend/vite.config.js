@@ -1,14 +1,16 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
     proxy: {
-      '/catalog': { target: 'http://localhost:8080', changeOrigin: true, rewrite: (path) => path.replace(/^\/catalog/, '') },
-      '/orders': { target: 'http://localhost:8081', changeOrigin: true, rewrite: (path) => path.replace(/^\/orders/, '') },
-      '/insights': { target: 'http://localhost:8082', changeOrigin: true, rewrite: (path) => path.replace(/^\/insights/, '') },
+      // All /api/* requests go through NGINX (port 3000) which routes to correct service
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
     },
   },
-})
+});

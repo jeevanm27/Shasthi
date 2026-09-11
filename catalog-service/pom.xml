@@ -12,7 +12,7 @@
   </parent>
 
   <groupId>com.shasthi</groupId>
-  <artifactId>order-service</artifactId>
+  <artifactId>catalog-service</artifactId>
   <version>2.0.0</version>
 
   <properties>
@@ -49,13 +49,20 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
-    <!-- Apache Kafka -->
+    <!-- Redis — Lettuce client (included in spring-data-redis) -->
     <dependency>
-      <groupId>org.springframework.kafka</groupId>
-      <artifactId>spring-kafka</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
     </dependency>
 
-    <!-- JWT verification (shared secret with user-service) -->
+    <!-- Redis OM Spring (RediSearch / Document indexing) -->
+    <dependency>
+      <groupId>com.redis</groupId>
+      <artifactId>redis-om-spring</artifactId>
+      <version>0.9.7</version>
+    </dependency>
+
+    <!-- JWT verification -->
     <dependency>
       <groupId>io.jsonwebtoken</groupId>
       <artifactId>jjwt-api</artifactId>
@@ -78,11 +85,6 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.kafka</groupId>
-      <artifactId>spring-kafka-test</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
