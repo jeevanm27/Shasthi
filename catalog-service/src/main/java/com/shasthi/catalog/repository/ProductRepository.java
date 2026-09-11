@@ -106,4 +106,21 @@ public class ProductRepository {
         Integer c = jdbc.queryForObject("SELECT COUNT(*) FROM products", Integer.class);
         return c == null ? 0 : c;
     }
+
+    /** Full-text search using Postgres ILIKE on name and description. */
+    public List<Product> search(String query) {
+        String pattern = "%" + query.toLowerCase() + "%";
+        return jdbc.query(
+            """
+            SELECT * FROM products
+            WHERE available = true
+              AND (LOWER(name) LIKE ? OR LOWER(description) LIKE ?)
+            ORDER BY
+              CASE WHEN LOWER(name) LIKE ? THEN 0 ELSE 1 END,
+              name ASC
+            LIMIT 50
+            """,
+            productRowMapper, pattern, pattern, pattern
+        );
+    }
 }

@@ -15,15 +15,15 @@ public class ProductService {
 
     private static final Logger log = LoggerFactory.getLogger(ProductService.class);
 
-    private final ProductRepository       pgRepo;
-    private final RedisProductRepository  redisRepo;
+    private final ProductRepository      pgRepo;
+    private final RedisProductRepository redisCache;
 
-    public ProductService(ProductRepository pgRepo, RedisProductRepository redisRepo) {
-        this.pgRepo   = pgRepo;
-        this.redisRepo = redisRepo;
+    public ProductService(ProductRepository pgRepo, RedisProductRepository redisCache) {
+        this.pgRepo     = pgRepo;
+        this.redisCache = redisCache;
     }
 
-    // ─── Customer-facing: paginated product list (from Postgres) ─────────────
+    // ─── Customer-facing: paginated product list (Postgres) ───────────────────
     public List<Product> listProducts(int page, int size) {
         int offset = (page - 1) * size;
         return pgRepo.findAll(size, offset);
@@ -33,62 +33,57 @@ public class ProductService {
         return pgRepo.count();
     }
 
-    // ─── Customer-facing: sub-millisecond search via Redis ───────────────────
+    // ─── Customer-facing: full-text search (Postgres ILIKE) ───────────────────
+    // Redis OM / FT.SEARCH was removed (artifact not on Maven Central).
+    // Postgres ILIKE on name+description is fast enough for this scale.
     public List<Product> searchProducts(String query) {
         try {
-            // Search by name, only return available products
-            return redisRepo.findByNameAndAvailable(query, true);
+            return pgRepo.search(query);
         } catch (Exception ex) {
-            log.warn("[catalog] Redis search failed, falling back to Postgres ILIKE: {}", ex.getMessage());
-            // Graceful degradation: fall back to Postgres if Redis is unavailable
-            return pgRepo.findAll(50, 0).stream()
-                    .filter(p -> Boolean.TRUE.equals(p.getAvailable()))
-                    .filter(p -> p.getName().toLowerCase().contains(query.toLowerCase()))
-                    .toList();
+            log.warn("[catalog] Postgres search failed: {}", ex.getMessage());
+            return List.of();
         }
     }
 
-    // ─── Public: get by ID ───────────────────────────────────────────────────
+    // ─── Get by ID ────────────────────────────────────────────────────────────
     public Optional<Product> getById(String id) {
         return pgRepo.findById(id);
     }
 
-    // ─── Admin: create ───────────────────────────────────────────────────────
+    // ─── Admin: create ────────────────────────────────────────────────────────
     public Product createProduct(Product p) {
         Product saved = pgRepo.create(p);
-        syncToRedis(saved);
+        warmCache(saved);
         return saved;
     }
 
-    // ─── Admin: update ───────────────────────────────────────────────────────
+    // ─── Admin: update ────────────────────────────────────────────────────────
     public Optional<Product> updateProduct(String id, Product p) {
         Optional<Product> updated = pgRepo.update(id, p);
-        updated.ifPresent(this::syncToRedis);
+        updated.ifPresent(this::warmCache);
         return updated;
     }
 
-    // ─── Admin: delete ───────────────────────────────────────────────────────
+    // ─── Admin: delete ────────────────────────────────────────────────────────
     public boolean deleteProduct(String id) {
         boolean deleted = pgRepo.deleteById(id);
         if (deleted) {
             try {
-                redisRepo.deleteById(id);
-                log.debug("[catalog] Removed product {} from Redis index", id);
+                redisCache.deleteById(id);
             } catch (Exception ex) {
-                log.warn("[catalog] Failed to remove product {} from Redis: {}", id, ex.getMessage());
+                log.warn("[catalog] Redis evict failed for {}: {}", id, ex.getMessage());
             }
         }
         return deleted;
     }
 
-    // ─── Internal: sync Postgres product to Redis OM index ───────────────────
-    private void syncToRedis(Product p) {
+    // ─── Internal: warm Redis cache ───────────────────────────────────────────
+    private void warmCache(Product p) {
         try {
-            redisRepo.save(p);
-            log.debug("[catalog] Synced product {} '{}' to Redis index", p.getId(), p.getName());
+            redisCache.save(p);
         } catch (Exception ex) {
-            // Don't fail the request if Redis sync fails — Postgres is source of truth
-            log.warn("[catalog] Redis sync failed for product {}: {}", p.getId(), ex.getMessage());
+            // Redis is a cache, not source of truth — don't fail the request
+            log.warn("[catalog] Redis cache warm failed for {}: {}", p.getId(), ex.getMessage());
         }
     }
 }

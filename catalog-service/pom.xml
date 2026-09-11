@@ -55,12 +55,7 @@
       <artifactId>spring-boot-starter-data-redis</artifactId>
     </dependency>
 
-    <!-- Redis OM Spring (RediSearch / Document indexing) -->
-    <dependency>
-      <groupId>com.redis</groupId>
-      <artifactId>redis-om-spring</artifactId>
-      <version>0.9.7</version>
-    </dependency>
+
 
     <!-- JWT verification -->
     <dependency>
