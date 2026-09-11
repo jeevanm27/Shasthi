@@ -130,14 +130,12 @@ services:
       retries: 8
       start_period: 45s
 
-  # ─── Frontend (React/Vite — built and embedded into NGINX image) ─────────────
-  frontend:
-    build: ./frontend
-    image: shasthi-frontend
-
   # ─── NGINX — API Gateway + SPA Host ─────────────────────────────────────────
+  # Build context is the REPO ROOT so the Dockerfile can COPY ./frontend and ./nginx
   nginx:
-    build: ./nginx
+    build:
+      context: .          # repo root  ← allows access to ./frontend/
+      dockerfile: nginx/Dockerfile
     ports:
       - "3000:80"      # ← single public entry point
     depends_on:
