@@ -638,13 +638,259 @@ docker compose exec redis redis-cli FT.INFO idx:products
 # Search products in Redis
 docker compose exec redis redis-cli FT.SEARCH idx:products "@name:turmeric"
 
-# Postgres psql
-docker compose exec postgres psql -U shasthi -d shasthi
+---
 
-# View all orders in DB
-docker compose exec postgres psql -U shasthi -d shasthi -c "SELECT * FROM orders;"
+## PHASE 6: Cleanup, Static Testing & Docker Integration 🔄 IN PROGRESS
+
+### 6A — Code Cleanup ✅ COMPLETE (2026-09-12)
+
+**Stale files deleted:**
+- [x] `frontend/src/api/catalogApi.js` (old API module)
+- [x] `frontend/src/api/orderApi.js` (old API module)
+- [x] `frontend/src/api/authApi.js` (old API module)
+- [x] `frontend/src/api/insightsApi.js` (insights-service removed)
+- [x] `frontend/src/pages/admin/index.jsx` (old admin page with key-based auth)
+- [x] `frontend/src/pages/products/ProductListing.jsx` (replaced by Shop/index.jsx)
+- [x] `frontend/src/hooks/useProducts.js` (imported old catalogApi)
+- [x] `frontend/src/pages/home/headfoot.jsx` (unused)
+- [x] `frontend/src/components/AdminPanel.jsx`, `adminCard.jsx`, `CustCard.jsx`, `HomeCard.jsx` (old)
+- [x] `frontend/src/components/ui/ProtectedRoute.jsx` (inlined into App.jsx)
+- [x] `frontend/src/components/Footer.jsx` (duplicate — real one is in layout/)
+- [x] `start.bat`, `start.ps1`, `stop.ps1` (replaced by docker compose)
+- [x] Root `Dockerfile` (each service has its own)
+
+**Bugs fixed:**
+- [x] `Header.jsx`: `isAuthed` → `isLoggedIn`, `itemCount` → `cartCount` (new CartContext API)
+- [x] `CartDrawer.jsx`: removed `insightsApi`, fixed all CartContext field names
+- [x] `home/index.jsx`: correct import path + `getProducts()` returns `{products:[]}` not array
+- [x] `Shop/index.jsx`: wired Redis search via `catalogApi.searchProducts()`, fixed `pricePerGram` sort
+- [x] `Checkout/index.jsx`: removed Razorpay entirely; uses `CartContext.checkout()` → Kafka
+- [x] `Orders/index.jsx`: replaced `orderApi` with `ordersApi`, fixed field names (`totalPrice` etc)
+- [x] `AuthModal.jsx`: removed `@react-oauth/google`, clean email/password modal only
+- [x] `ProductCard.jsx`: stateless, `image_url` → `imageUrl`, `price` → `pricePerGram`
+- [x] `App.jsx`: wired `AuthModal` + `Footer` back in
+- [x] **CRITICAL**: `nginx/Dockerfile` `COPY ../frontend` → `COPY frontend/` (build context is repo root)
+- [x] **CRITICAL**: `docker-compose.yml`: NGINX build `context: .` + `dockerfile: nginx/Dockerfile`
+- [x] Removed stale `frontend` service from docker-compose (NGINX builds it internally)
+
+---
+
+### 6B — Static Code Tests ✅ ALL PASSED (2026-09-12)
+
+| Test | Result |
+|------|--------|
+| user-service JS syntax (9 files) | ✅ All OK |
+| Frontend API modules (6 files) | ✅ All OK |
+| Frontend build (`npm run build`) | ✅ 0 errors, 78 modules |
+| No broken import references | ✅ CLEAN |
+| CartContext exports (8 APIs) | ✅ All present |
+| AuthContext exports (7 APIs) | ✅ All present |
+| NGINX conf routes/upstreams (8) | ✅ All present |
+| docker-compose services/vars (14) | ✅ All present |
+| Kafka event contract | ✅ Producer ↔ Consumer field parity |
+| Idempotency (`event_id` UNIQUE) | ✅ Present in schema + OrderService |
+| Atomic stock deduction | ✅ `UPDATE WHERE stock_quantity >= qty` |
+| Kafka MANUAL_IMMEDIATE ack | ✅ In yml + `ack.acknowledge()` called |
+| Redis graceful fallback | ✅ try/catch in ProductService |
+| JWT filter in both Java services | ✅ JwtFilter.java in both |
+| Java source files non-empty (22) | ✅ All > 100 bytes |
+
+---
+
+### 6C — Docker Runtime Testing ❌ PENDING (Docker Desktop not running)
+
+> **NEXT AGENT**: Start here. Docker Desktop must be **open and running** before these steps.
+
+#### Step 1 — Start Infrastructure
+```powershell
+# Copy env file if not done
+Copy-Item .env.example .env   # only needed once
+
+# Build and start all services
+docker compose up --build -d
+
+# Wait ~60s for Java services to start, then check
+docker compose ps
+# ALL services should show: healthy
+```
+
+**Expected healthy services:** `postgres`, `redis`, `zookeeper`, `kafka`, `user-service`, `catalog-service`, `order-service`, `nginx`
+
+If any service stays `starting` for >3 min, check logs:
+```powershell
+docker compose logs <service-name> --tail=50
 ```
 
 ---
 
-*End of Implementation Plan — update task statuses as each item is completed.*
+#### Step 2 — Smoke Test Each Service
+```powershell
+# Test 1: NGINX gateway live
+Invoke-WebRequest http://localhost:3000 -UseBasicParsing | Select-Object StatusCode
+
+# Test 2: user-service health
+Invoke-WebRequest http://localhost:3000/api/users/health -UseBasicParsing
+
+# Test 3: catalog-service health (Spring Actuator)
+Invoke-WebRequest http://localhost:3000/api/catalog/actuator/health -UseBasicParsing
+
+# Test 4: order-service health (Spring Actuator)  
+Invoke-WebRequest http://localhost:3000/api/orders/actuator/health -UseBasicParsing
+
+# Test 5: products seeded
+Invoke-WebRequest "http://localhost:3000/api/catalog/products" -UseBasicParsing
+# Expect: {"products":[...5 items...],"total":5,"page":1}
+```
+
+---
+
+#### Step 3 — Auth Tests
+```powershell
+# Register customer
+$reg = Invoke-WebRequest "http://localhost:3000/api/users/register" -Method POST `
+  -ContentType "application/json" `
+  -Body '{"name":"Test User","email":"test@shasthi.com","password":"Password123"}' `
+  -UseBasicParsing | ConvertFrom-Json
+$TOKEN = $reg.token
+
+# Register admin (note: ADMIN_KEY default in docker-compose is 'shasthi-admin-2024')
+$admin = Invoke-WebRequest "http://localhost:3000/api/users/register" -Method POST `
+  -ContentType "application/json" `
+  -Headers @{"x-admin-key"="shasthi-admin-2024"} `
+  -Body '{"name":"Admin","email":"admin@shasthi.com","password":"AdminPass123"}' `
+  -UseBasicParsing | ConvertFrom-Json
+$ADMIN_TOKEN = $admin.token
+
+# Get my profile
+Invoke-WebRequest "http://localhost:3000/api/users/me" `
+  -Headers @{"Authorization"="Bearer $TOKEN"} -UseBasicParsing
+```
+
+---
+
+#### Step 4 — Cart Tests
+```powershell
+# Get product id from catalog
+$products = Invoke-WebRequest "http://localhost:3000/api/catalog/products" `
+  -UseBasicParsing | ConvertFrom-Json
+$PROD_ID = $products.products[0].id
+
+# Add to cart
+Invoke-WebRequest "http://localhost:3000/api/cart/items" -Method POST `
+  -ContentType "application/json" `
+  -Headers @{"Authorization"="Bearer $TOKEN"} `
+  -Body "{`"productId`":`"$PROD_ID`",`"quantityGrams`":100}" `
+  -UseBasicParsing
+
+# View cart
+Invoke-WebRequest "http://localhost:3000/api/cart" `
+  -Headers @{"Authorization"="Bearer $TOKEN"} -UseBasicParsing
+# Expect: cart hash with 1 item
+
+# Checkout (triggers Kafka event → order-service processes it)
+$checkout = Invoke-WebRequest "http://localhost:3000/api/cart/checkout" -Method POST `
+  -ContentType "application/json" `
+  -Headers @{"Authorization"="Bearer $TOKEN"} `
+  -UseBasicParsing | ConvertFrom-Json
+Write-Host "Event ID: $($checkout.eventId)"
+```
+
+---
+
+#### Step 5 — End-to-End Order Verification
+```powershell
+# Wait 5-10 seconds for Kafka consumer to process
+Start-Sleep 10
+
+# Check my orders
+$orders = Invoke-WebRequest "http://localhost:3000/api/orders/my" `
+  -Headers @{"Authorization"="Bearer $TOKEN"} -UseBasicParsing | ConvertFrom-Json
+Write-Host "Orders: $($orders.Count)"
+# Expect: 1 order with status PENDING or PROCESSING
+
+# Verify inventory was deducted (compare stock before/after)
+$product = Invoke-WebRequest "http://localhost:3000/api/catalog/products/$PROD_ID" `
+  -UseBasicParsing | ConvertFrom-Json
+Write-Host "Stock after order: $($product.stockQuantity)"
+# Should be (original - 100) grams
+```
+
+---
+
+#### Step 6 — Admin Tests
+```powershell
+# View all orders as admin
+Invoke-WebRequest "http://localhost:3000/api/orders" `
+  -Headers @{"Authorization"="Bearer $ADMIN_TOKEN"} -UseBasicParsing
+
+# Create a product (admin only)
+Invoke-WebRequest "http://localhost:3000/api/catalog/products" -Method POST `
+  -ContentType "application/json" `
+  -Headers @{"Authorization"="Bearer $ADMIN_TOKEN"} `
+  -Body '{"name":"Test Spice","category":"Blends","pricePerGram":0.50,"stockQuantity":500,"description":"Test product","available":true}' `
+  -UseBasicParsing
+
+# Verify Redis search index
+docker compose exec redis redis-cli FT.INFO idx:products
+docker compose exec redis redis-cli FT.SEARCH idx:products "@name:Test"
+```
+
+---
+
+#### Step 7 — Known Issues to Watch For
+
+| Issue | Symptom | Fix |
+|-------|---------|-----|
+| Kafka consumer `UnknownHostException` | order-service can't connect to kafka | Verify `KAFKA_LISTENERS` includes `PLAINTEXT://kafka:9092` |
+| Redis OM startup error `duplicate index` | catalog-service crashes on boot | Add `@catch` around index creation in `CatalogApplication.java` |
+| `schema.sql` runs twice | Tables already exist error | Already handled with `CREATE TABLE IF NOT EXISTS` |
+| NGINX 502 Bad Gateway | Service not healthy yet | Wait longer, check `docker compose ps` |
+| Java services OOM on Windows | Build fails or crashes | Increase Docker Desktop memory to 4GB+ |
+| Cart checkout 401 | JWT not sent in request | Verify `Authorization: Bearer <token>` header |
+
+---
+
+#### Step 8 — Redis Index Fix (if needed)
+
+If catalog-service crashes on start with `duplicate index`:
+```java
+// In CatalogApplication.java — add @PostConstruct or handle in startup:
+// The redis-om-spring library handles this via @EnableRedisDocumentRepositories
+// If it still fails, add to application.yml:
+//   spring.data.redis.repositories.enabled: false
+// and use raw RedisTemplate for index creation
+```
+
+Or simpler workaround — flush Redis before restart:
+```powershell
+docker compose exec redis redis-cli FLUSHALL
+docker compose restart catalog-service
+```
+
+---
+
+#### Step 9 — Frontend UI Testing
+
+Once backend is healthy, test the full UI at `http://localhost:3000`:
+
+- [ ] Home page loads, best sellers appear (from catalog-service via Redis/Postgres)
+- [ ] Shop page loads all products, search works (Redis FT.SEARCH)
+- [ ] Sign In modal opens, login works, JWT stored in localStorage
+- [ ] Add to Cart works, cart drawer shows items
+- [ ] Checkout flow: Review → Confirm → "Order placed!" with eventId
+- [ ] My Orders page shows the placed order with status
+- [ ] Admin login at `/admin` shows Products and Orders dashboards
+- [ ] Admin can create/edit/delete a product → shows in shop
+
+---
+
+### 6D — Post-Integration Cleanup (after Docker tests pass)
+- [ ] Remove hardcoded `shasthi-admin-2024` default ADMIN_KEY from docker-compose.yml
+- [ ] Add `KAFKA_MESSAGE_MAX_BYTES` limit if large orders are expected
+- [ ] Set up `.dockerignore` files for catalog-service and order-service to exclude Maven wrapper caches
+- [ ] Consider adding `restart: unless-stopped` to all services in docker-compose.yml
+- [ ] Write a `Makefile` with `make up`, `make down`, `make logs` shortcuts
+
+---
+
+*Last updated: 2026-09-12 by agent — Phases 0-5 complete, Phase 6A+6B complete, Phase 6C+6D pending Docker Desktop.*
