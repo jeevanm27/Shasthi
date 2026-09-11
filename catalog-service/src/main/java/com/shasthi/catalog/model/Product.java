@@ -1,4 +1,4 @@
-package com.shasthi.catalog.model;
+﻿package com.shasthi.catalog.model;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -6,7 +6,7 @@ import java.time.OffsetDateTime;
 /**
  * Plain POJO mapped to the 'products' PostgreSQL table via JdbcTemplate.
  * Also serialized to JSON and stored in Redis for caching.
- * No redis-om-spring annotations needed — we use raw StringRedisTemplate.
+ * No redis-om-spring annotations needed  we use raw StringRedisTemplate.
  */
 public class Product {
 
@@ -24,7 +24,7 @@ public class Product {
 
     public Product() {}
 
-    // ─── Getters / Setters ────────────────────────────────────────────────────
+    //  Getters / Setters 
     public String getId()                         { return id; }
     public void   setId(String id)                { this.id = id; }
 

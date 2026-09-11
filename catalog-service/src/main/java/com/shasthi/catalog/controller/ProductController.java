@@ -1,4 +1,4 @@
-package com.shasthi.catalog.controller;
+﻿package com.shasthi.catalog.controller;
 
 import com.shasthi.catalog.model.Product;
 import com.shasthi.catalog.service.ProductService;
@@ -20,7 +20,7 @@ public class ProductController {
         this.service = service;
     }
 
-    // ─── GET /api/catalog/products  — paginated list (public) ────────────────
+    //  GET /api/catalog/products   paginated list (public) 
     @GetMapping
     public ResponseEntity<Map<String, Object>> listProducts(
             @RequestParam(defaultValue = "1")  int page,
@@ -39,7 +39,7 @@ public class ProductController {
         ));
     }
 
-    // ─── GET /api/catalog/products/search?q= — Redis FT.SEARCH (public) ──────
+    //  GET /api/catalog/products/search?q=  Redis FT.SEARCH (public) 
     @GetMapping("/search")
     public ResponseEntity<List<Product>> searchProducts(@RequestParam String q) {
         if (q == null || q.isBlank()) {
@@ -48,7 +48,7 @@ public class ProductController {
         return ResponseEntity.ok(service.searchProducts(q.trim()));
     }
 
-    // ─── GET /api/catalog/products/:id  — single product (public) ────────────
+    //  GET /api/catalog/products/:id   single product (public) 
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProduct(@PathVariable String id) {
         return service.getById(id)
@@ -56,14 +56,14 @@ public class ProductController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ─── POST /api/catalog/products  — create (ADMIN — enforced by JwtFilter) ─
+    //  POST /api/catalog/products   create (ADMIN  enforced by JwtFilter) 
     @PostMapping
     public ResponseEntity<Product> createProduct(@Valid @RequestBody Product product) {
         Product created = service.createProduct(product);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // ─── PUT /api/catalog/products/:id  — update (ADMIN) ─────────────────────
+    //  PUT /api/catalog/products/:id   update (ADMIN) 
     @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(
             @PathVariable String id,
@@ -74,7 +74,7 @@ public class ProductController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ─── DELETE /api/catalog/products/:id  — delete (ADMIN) ──────────────────
+    //  DELETE /api/catalog/products/:id   delete (ADMIN) 
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteProduct(@PathVariable String id) {
         if (service.deleteProduct(id)) {

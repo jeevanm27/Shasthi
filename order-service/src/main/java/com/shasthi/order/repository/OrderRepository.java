@@ -1,4 +1,4 @@
-package com.shasthi.order.repository;
+﻿package com.shasthi.order.repository;
 
 import com.shasthi.order.model.Order;
 import com.shasthi.order.model.OrderItem;
@@ -22,7 +22,7 @@ public class OrderRepository {
         this.jdbc = jdbc;
     }
 
-    // ─── RowMappers ───────────────────────────────────────────────────────────
+    //  RowMappers 
     private final RowMapper<Order> orderRowMapper = (rs, rowNum) -> {
         Order o = new Order();
         o.setId(rs.getString("id"));
@@ -49,7 +49,7 @@ public class OrderRepository {
         return i;
     };
 
-    // ─── Check idempotency: has this Kafka event already been processed? ──────
+    //  Check idempotency: has this Kafka event already been processed? 
     public boolean eventAlreadyProcessed(String eventId) {
         Integer count = jdbc.queryForObject(
             "SELECT COUNT(*) FROM orders WHERE event_id = ?", Integer.class, eventId
@@ -57,7 +57,7 @@ public class OrderRepository {
         return count != null && count > 0;
     }
 
-    // ─── Atomic inventory deduction (called inside @Transactional) ───────────
+    //  Atomic inventory deduction (called inside @Transactional) 
     /**
      * Deducts stock for a product.
      * Uses a conditional UPDATE to prevent overselling.
@@ -81,7 +81,7 @@ public class OrderRepository {
         return rows > 0;
     }
 
-    // ─── Insert a new order ───────────────────────────────────────────────────
+    //  Insert a new order 
     public String insertOrder(String eventId, String userId, String userEmail,
                               java.math.BigDecimal totalPrice) {
         String id = UUID.randomUUID().toString();
@@ -95,7 +95,7 @@ public class OrderRepository {
         return id;
     }
 
-    // ─── Batch insert order items ─────────────────────────────────────────────
+    //  Batch insert order items 
     public void insertOrderItems(String orderId, List<OrderItem> items) {
         for (OrderItem item : items) {
             jdbc.update(
@@ -110,7 +110,7 @@ public class OrderRepository {
         }
     }
 
-    // ─── Mark order as CANCELLED ──────────────────────────────────────────────
+    //  Mark order as CANCELLED 
     public void cancelOrder(String orderId) {
         jdbc.update(
             "UPDATE orders SET status = 'CANCELLED'::order_status, updated_at = NOW() WHERE id = ?::uuid",
@@ -118,7 +118,7 @@ public class OrderRepository {
         );
     }
 
-    // ─── Admin: all orders ────────────────────────────────────────────────────
+    //  Admin: all orders 
     public List<Order> findAll() {
         return jdbc.query(
             "SELECT * FROM orders ORDER BY created_at DESC",
@@ -126,7 +126,7 @@ public class OrderRepository {
         );
     }
 
-    // ─── Customer: their own orders ───────────────────────────────────────────
+    //  Customer: their own orders 
     public List<Order> findByUserId(String userId) {
         return jdbc.query(
             "SELECT * FROM orders WHERE user_id = ?::uuid ORDER BY created_at DESC",
@@ -134,7 +134,7 @@ public class OrderRepository {
         );
     }
 
-    // ─── Items for an order ───────────────────────────────────────────────────
+    //  Items for an order 
     public List<OrderItem> findItemsByOrderId(String orderId) {
         return jdbc.query(
             "SELECT * FROM order_items WHERE order_id = ?::uuid",
@@ -142,7 +142,7 @@ public class OrderRepository {
         );
     }
 
-    // ─── Admin: update status ─────────────────────────────────────────────────
+    //  Admin: update status 
     public Optional<Order> updateStatus(String orderId, String status) {
         int rows = jdbc.update(
             "UPDATE orders SET status = ?::order_status, updated_at = NOW() WHERE id = ?::uuid",

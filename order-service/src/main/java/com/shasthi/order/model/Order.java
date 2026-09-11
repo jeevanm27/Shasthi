@@ -1,4 +1,4 @@
-package com.shasthi.order.model;
+﻿package com.shasthi.order.model;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -16,7 +16,7 @@ public class Order {
     private OffsetDateTime  updatedAt;
     private List<OrderItem> items;
 
-    // ─── Getters / Setters ────────────────────────────────────────────────────
+    //  Getters / Setters 
     public String getId()                         { return id; }
     public void   setId(String id)                { this.id = id; }
 

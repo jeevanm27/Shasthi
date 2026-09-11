@@ -1,4 +1,4 @@
-package com.shasthi.order.consumer;
+﻿package com.shasthi.order.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shasthi.order.model.OrderCreatedEvent;
@@ -28,7 +28,7 @@ public class OrderCreatedConsumer {
      *
      * ack-mode = MANUAL_IMMEDIATE:
      * - The offset is committed (ack.acknowledge()) ONLY after successful processing.
-     * - If processing throws, the offset is NOT committed → Kafka re-delivers the message.
+     * - If processing throws, the offset is NOT committed -> Kafka re-delivers the message.
      * - Combined with the idempotency key (event_id UNIQUE), re-delivery is safe.
      */
     @KafkaListener(topics = "order-created", groupId = "${KAFKA_GROUP_ID:order-service-group}")
@@ -40,12 +40,12 @@ public class OrderCreatedConsumer {
             OrderCreatedEvent event = objectMapper.readValue(rawValue, OrderCreatedEvent.class);
             orderService.processOrder(event);
 
-            // ── Acknowledge AFTER successful processing ────────────────────────
+            //  Acknowledge AFTER successful processing 
             ack.acknowledge();
             log.info("[kafka] ACK'd offset {} for eventId={}", record.offset(), event.getEventId());
 
         } catch (Exception ex) {
-            // Log and do NOT acknowledge → Kafka will re-deliver
+            // Log and do NOT acknowledge -> Kafka will re-deliver
             log.error("[kafka] Failed to process order-created at offset={}: {}",
                     record.offset(), ex.getMessage(), ex);
             // TODO: After max retries, route to a Dead Letter Topic (DLT)

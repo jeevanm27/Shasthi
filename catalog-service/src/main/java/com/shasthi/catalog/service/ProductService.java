@@ -1,4 +1,4 @@
-package com.shasthi.catalog.service;
+﻿package com.shasthi.catalog.service;
 
 import com.shasthi.catalog.model.Product;
 import com.shasthi.catalog.repository.ProductRepository;
@@ -23,7 +23,7 @@ public class ProductService {
         this.redisCache = redisCache;
     }
 
-    // ─── Customer-facing: paginated product list (Postgres) ───────────────────
+    //  Customer-facing: paginated product list (Postgres) 
     public List<Product> listProducts(int page, int size) {
         int offset = (page - 1) * size;
         return pgRepo.findAll(size, offset);
@@ -33,7 +33,7 @@ public class ProductService {
         return pgRepo.count();
     }
 
-    // ─── Customer-facing: full-text search (Postgres ILIKE) ───────────────────
+    //  Customer-facing: full-text search (Postgres ILIKE) 
     // Redis OM / FT.SEARCH was removed (artifact not on Maven Central).
     // Postgres ILIKE on name+description is fast enough for this scale.
     public List<Product> searchProducts(String query) {
@@ -45,26 +45,26 @@ public class ProductService {
         }
     }
 
-    // ─── Get by ID ────────────────────────────────────────────────────────────
+    //  Get by ID 
     public Optional<Product> getById(String id) {
         return pgRepo.findById(id);
     }
 
-    // ─── Admin: create ────────────────────────────────────────────────────────
+    //  Admin: create 
     public Product createProduct(Product p) {
         Product saved = pgRepo.create(p);
         warmCache(saved);
         return saved;
     }
 
-    // ─── Admin: update ────────────────────────────────────────────────────────
+    //  Admin: update 
     public Optional<Product> updateProduct(String id, Product p) {
         Optional<Product> updated = pgRepo.update(id, p);
         updated.ifPresent(this::warmCache);
         return updated;
     }
 
-    // ─── Admin: delete ────────────────────────────────────────────────────────
+    //  Admin: delete 
     public boolean deleteProduct(String id) {
         boolean deleted = pgRepo.deleteById(id);
         if (deleted) {
@@ -77,12 +77,12 @@ public class ProductService {
         return deleted;
     }
 
-    // ─── Internal: warm Redis cache ───────────────────────────────────────────
+    //  Internal: warm Redis cache 
     private void warmCache(Product p) {
         try {
             redisCache.save(p);
         } catch (Exception ex) {
-            // Redis is a cache, not source of truth — don't fail the request
+            // Redis is a cache, not source of truth  don't fail the request
             log.warn("[catalog] Redis cache warm failed for {}: {}", p.getId(), ex.getMessage());
         }
     }

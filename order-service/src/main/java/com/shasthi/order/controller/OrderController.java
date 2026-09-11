@@ -1,4 +1,4 @@
-package com.shasthi.order.controller;
+﻿package com.shasthi.order.controller;
 
 import com.shasthi.order.model.Order;
 import com.shasthi.order.service.OrderService;
@@ -23,13 +23,13 @@ public class OrderController {
         this.service = service;
     }
 
-    // ─── GET /api/orders  — Admin: all orders ─────────────────────────────────
+    //  GET /api/orders   Admin: all orders 
     @GetMapping
     public ResponseEntity<List<Order>> getAllOrders() {
         return ResponseEntity.ok(service.getAllOrders());
     }
 
-    // ─── GET /api/orders/my  — Customer: their own orders ────────────────────
+    //  GET /api/orders/my   Customer: their own orders 
     @GetMapping("/my")
     public ResponseEntity<List<Order>> getMyOrders(HttpServletRequest req) {
         String userId = (String) req.getAttribute("userId");
@@ -39,7 +39,7 @@ public class OrderController {
         return ResponseEntity.ok(service.getOrdersByUser(userId));
     }
 
-    // ─── PUT /api/orders/:id/status  — Admin: update status ──────────────────
+    //  PUT /api/orders/:id/status   Admin: update status 
     @PutMapping("/{id}/status")
     public ResponseEntity<?> updateStatus(
             @PathVariable String id,

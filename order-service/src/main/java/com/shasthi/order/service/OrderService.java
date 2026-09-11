@@ -1,4 +1,4 @@
-package com.shasthi.order.service;
+﻿package com.shasthi.order.service;
 
 import com.shasthi.order.model.Order;
 import com.shasthi.order.model.OrderCreatedEvent;
@@ -39,7 +39,7 @@ public class OrderService {
     public void processOrder(OrderCreatedEvent event) {
         String eventId = event.getEventId();
 
-        // ── Idempotency: skip if Kafka re-delivers this event ─────────────────
+        //  Idempotency: skip if Kafka re-delivers this event 
         if (repo.eventAlreadyProcessed(eventId)) {
             log.info("[order] Duplicate event {} skipped (already processed)", eventId);
             return;
@@ -47,7 +47,7 @@ public class OrderService {
 
         log.info("[order] Processing event {} for user {}", eventId, event.getUserId());
 
-        // ── Build order items list ─────────────────────────────────────────────
+        //  Build order items list 
         List<OrderItem> items = new ArrayList<>();
         for (OrderCreatedEvent.EventItem ei : event.getItems()) {
             OrderItem item = new OrderItem();
@@ -58,7 +58,7 @@ public class OrderService {
             items.add(item);
         }
 
-        // ── Deduct stock for every item (fail-fast on insufficient stock) ──────
+        //  Deduct stock for every item (fail-fast on insufficient stock) 
         List<String> failedProducts = new ArrayList<>();
         for (OrderItem item : items) {
             boolean ok = repo.deductStock(item.getProductId(), item.getQuantityGrams());
@@ -68,7 +68,7 @@ public class OrderService {
         }
 
         if (!failedProducts.isEmpty()) {
-            log.warn("[order] Insufficient stock for: {} — event {}", failedProducts, eventId);
+            log.warn("[order] Insufficient stock for: {}  event {}", failedProducts, eventId);
             // Insert the order as CANCELLED so the user can see what happened
             // This runs in the same transaction which will be committed
             String orderId = repo.insertOrder(
@@ -79,7 +79,7 @@ public class OrderService {
             return;
         }
 
-        // ── All stock deducted — insert the order as PENDING ──────────────────
+        //  All stock deducted  insert the order as PENDING 
         String orderId = repo.insertOrder(
             eventId, event.getUserId(), event.getUserEmail(), event.getTotalPrice()
         );
@@ -87,21 +87,21 @@ public class OrderService {
         log.info("[order] Order {} created successfully for event {}", orderId, eventId);
     }
 
-    // ─── Admin: all orders with items ────────────────────────────────────────
+    //  Admin: all orders with items 
     public List<Order> getAllOrders() {
         List<Order> orders = repo.findAll();
         orders.forEach(o -> o.setItems(repo.findItemsByOrderId(o.getId())));
         return orders;
     }
 
-    // ─── Customer: their orders ───────────────────────────────────────────────
+    //  Customer: their orders 
     public List<Order> getOrdersByUser(String userId) {
         List<Order> orders = repo.findByUserId(userId);
         orders.forEach(o -> o.setItems(repo.findItemsByOrderId(o.getId())));
         return orders;
     }
 
-    // ─── Admin: update status ─────────────────────────────────────────────────
+    //  Admin: update status 
     public Optional<Order> updateStatus(String orderId, String status) {
         return repo.updateStatus(orderId, status);
     }

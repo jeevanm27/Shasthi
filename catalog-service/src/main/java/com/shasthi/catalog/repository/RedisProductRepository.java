@@ -1,4 +1,4 @@
-package com.shasthi.catalog.repository;
+﻿package com.shasthi.catalog.repository;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
  * Replaces redis-om-spring which is not on Maven Central.
  *
  * Cache strategy:
- *  - Key: "product:<id>"   → JSON of the Product
+ *  - Key: "product:<id>"   -> JSON of the Product
  *  - TTL: 30 minutes
  *
  * Full-text search is handled by Postgres ILIKE in ProductService.

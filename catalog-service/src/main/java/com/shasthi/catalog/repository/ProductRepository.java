@@ -1,4 +1,4 @@
-package com.shasthi.catalog.repository;
+﻿package com.shasthi.catalog.repository;
 
 import com.shasthi.catalog.model.Product;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -20,7 +20,7 @@ public class ProductRepository {
         this.jdbc = jdbc;
     }
 
-    // ─── RowMapper ────────────────────────────────────────────────────────────
+    //  RowMapper 
     private final RowMapper<Product> productRowMapper = (rs, rowNum) -> {
         Product p = new Product();
         p.setId(rs.getString("id"));
@@ -43,7 +43,7 @@ public class ProductRepository {
         return p;
     };
 
-    // ─── Queries ──────────────────────────────────────────────────────────────
+    //  Queries 
 
     public List<Product> findAll(int limit, int offset) {
         return jdbc.query(

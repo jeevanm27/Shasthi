@@ -1,4 +1,4 @@
-package com.shasthi.order.model;
+﻿package com.shasthi.order.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
@@ -28,7 +28,7 @@ public class OrderCreatedEvent {
     @JsonProperty("createdAt")
     private String createdAt;
 
-    // ─── Nested item class ────────────────────────────────────────────────────
+    //  Nested item class 
     public static class EventItem {
         @JsonProperty("productId")
         private String productId;
@@ -48,7 +48,7 @@ public class OrderCreatedEvent {
         public BigDecimal getPricePerGram() { return pricePerGram; }
     }
 
-    // ─── Getters ──────────────────────────────────────────────────────────────
+    //  Getters 
     public String          getEventId()    { return eventId; }
     public String          getUserId()     { return userId; }
     public String          getUserEmail()  { return userEmail; }

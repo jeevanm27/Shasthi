@@ -1,4 +1,4 @@
-package com.shasthi.order.config;
+﻿package com.shasthi.order.config;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -22,9 +22,9 @@ import java.util.Set;
  * Same shared-secret pattern as catalog-service.
  *
  * Route rules:
- *  GET /api/orders/my    → requires any valid JWT (CUSTOMER or ADMIN)
- *  GET /api/orders       → requires ADMIN
- *  PUT /api/orders/*/status → requires ADMIN
+ *  GET /api/orders/my    -> requires any valid JWT (CUSTOMER or ADMIN)
+ *  GET /api/orders       -> requires ADMIN
+ *  PUT /api/orders/*/status -> requires ADMIN
  */
 @Component
 public class JwtFilter extends OncePerRequestFilter {

@@ -1,4 +1,4 @@
-package com.shasthi.order.model;
+﻿package com.shasthi.order.model;
 
 import java.math.BigDecimal;
 
@@ -10,7 +10,7 @@ public class OrderItem {
     private Integer    quantityGrams;
     private BigDecimal priceLocked;
 
-    // ─── Getters / Setters ────────────────────────────────────────────────────
+    //  Getters / Setters 
     public String getId()                          { return id; }
     public void   setId(String id)                 { this.id = id; }
 
