@@ -1,4 +1,4 @@
-﻿package com.shasthi.order.consumer;
+package com.shasthi.order.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shasthi.order.model.OrderCreatedEvent;

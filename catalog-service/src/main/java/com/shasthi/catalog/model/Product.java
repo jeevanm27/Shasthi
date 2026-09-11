@@ -1,4 +1,4 @@
-﻿package com.shasthi.catalog.model;
+package com.shasthi.catalog.model;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;

@@ -1,4 +1,4 @@
-﻿package com.shasthi.order.model;
+package com.shasthi.order.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;

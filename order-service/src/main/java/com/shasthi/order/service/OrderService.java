@@ -1,4 +1,4 @@
-﻿package com.shasthi.order.service;
+package com.shasthi.order.service;
 
 import com.shasthi.order.model.Order;
 import com.shasthi.order.model.OrderCreatedEvent;

@@ -1,4 +1,4 @@
-﻿package com.shasthi.order.model;
+package com.shasthi.order.model;
 
 import java.math.BigDecimal;
 

@@ -1,4 +1,4 @@
-﻿package com.shasthi.catalog.controller;
+package com.shasthi.catalog.controller;
 
 import com.shasthi.catalog.model.Product;
 import com.shasthi.catalog.service.ProductService;

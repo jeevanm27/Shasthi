@@ -1,4 +1,4 @@
-﻿package com.shasthi.catalog.repository;
+package com.shasthi.catalog.repository;
 
 import com.shasthi.catalog.model.Product;
 import org.springframework.jdbc.core.JdbcTemplate;

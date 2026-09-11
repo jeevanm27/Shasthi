@@ -1,4 +1,4 @@
-﻿package com.shasthi.order.repository;
+package com.shasthi.order.repository;
 
 import com.shasthi.order.model.Order;
 import com.shasthi.order.model.OrderItem;
