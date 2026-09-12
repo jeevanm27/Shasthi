@@ -20,7 +20,7 @@ public class ProductRepository {
         this.jdbc = jdbc;
     }
 
-    //  RowMapper 
+    // ─── RowMapper ────────────────────────────────────────────────────────────
     private final RowMapper<Product> productRowMapper = (rs, rowNum) -> {
         Product p = new Product();
         p.setId(rs.getString("id"));
@@ -43,7 +43,7 @@ public class ProductRepository {
         return p;
     };
 
-    //  Queries 
+    // ─── Queries ──────────────────────────────────────────────────────────────
 
     public List<Product> findAll(int limit, int offset) {
         return jdbc.query(
@@ -102,25 +102,22 @@ public class ProductRepository {
         return jdbc.update("DELETE FROM products WHERE id = ?::uuid", id) > 0;
     }
 
-    public int count() {
-        Integer c = jdbc.queryForObject("SELECT COUNT(*) FROM products", Integer.class);
-        return c == null ? 0 : c;
-    }
-
-    /** Full-text search using Postgres ILIKE on name and description. */
     public List<Product> search(String query) {
         String pattern = "%" + query.toLowerCase() + "%";
         return jdbc.query(
             """
             SELECT * FROM products
             WHERE available = true
-              AND (LOWER(name) LIKE ? OR LOWER(description) LIKE ?)
-            ORDER BY
-              CASE WHEN LOWER(name) LIKE ? THEN 0 ELSE 1 END,
-              name ASC
+              AND (LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR LOWER(category) LIKE ?)
+            ORDER BY name ASC
             LIMIT 50
             """,
             productRowMapper, pattern, pattern, pattern
         );
+    }
+
+    public int count() {
+        Integer c = jdbc.queryForObject("SELECT COUNT(*) FROM products", Integer.class);
+        return c == null ? 0 : c;
     }
 }

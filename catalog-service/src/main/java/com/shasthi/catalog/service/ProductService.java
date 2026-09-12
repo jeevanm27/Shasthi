@@ -16,14 +16,14 @@ public class ProductService {
     private static final Logger log = LoggerFactory.getLogger(ProductService.class);
 
     private final ProductRepository      pgRepo;
-    private final RedisProductRepository redisCache;
+    private final RedisProductRepository cache;
 
-    public ProductService(ProductRepository pgRepo, RedisProductRepository redisCache) {
-        this.pgRepo     = pgRepo;
-        this.redisCache = redisCache;
+    public ProductService(ProductRepository pgRepo, RedisProductRepository cache) {
+        this.pgRepo = pgRepo;
+        this.cache  = cache;
     }
 
-    //  Customer-facing: paginated product list (Postgres) 
+    // ─── Customer: paginated list (Postgres) ─────────────────────────────────
     public List<Product> listProducts(int page, int size) {
         int offset = (page - 1) * size;
         return pgRepo.findAll(size, offset);
@@ -33,57 +33,65 @@ public class ProductService {
         return pgRepo.count();
     }
 
-    //  Customer-facing: full-text search (Postgres ILIKE) 
-    // Redis OM / FT.SEARCH was removed (artifact not on Maven Central).
-    // Postgres ILIKE on name+description is fast enough for this scale.
+    // ─── Customer: search via Postgres ILIKE (Redis not needed for FT.SEARCH) ─
+    // Redis Stack FT.SEARCH requires manual index creation at startup.
+    // Using Postgres full-text ILIKE is reliable and correct for our scale.
     public List<Product> searchProducts(String query) {
-        try {
-            return pgRepo.search(query);
-        } catch (Exception ex) {
-            log.warn("[catalog] Postgres search failed: {}", ex.getMessage());
-            return List.of();
-        }
+        return pgRepo.search(query);
     }
 
-    //  Get by ID 
+    // ─── Customer: get by ID (cache-aside) ───────────────────────────────────
     public Optional<Product> getById(String id) {
-        return pgRepo.findById(id);
+        Optional<Product> cached = Optional.empty();
+        try {
+            cached = cache.findById(id);
+        } catch (Exception ex) {
+            log.warn("[catalog] Redis read failed for {}: {}", id, ex.getMessage());
+        }
+        if (cached.isPresent()) return cached;
+
+        Optional<Product> fromDb = pgRepo.findById(id);
+        fromDb.ifPresent(p -> {
+            try { cache.save(p); } catch (Exception ex) { /* non-fatal */ }
+        });
+        return fromDb;
     }
 
-    //  Admin: create 
+    // ─── Admin: create ───────────────────────────────────────────────────────
     public Product createProduct(Product p) {
         Product saved = pgRepo.create(p);
-        warmCache(saved);
+        syncToCache(saved);
         return saved;
     }
 
-    //  Admin: update 
+    // ─── Admin: update ───────────────────────────────────────────────────────
     public Optional<Product> updateProduct(String id, Product p) {
         Optional<Product> updated = pgRepo.update(id, p);
-        updated.ifPresent(this::warmCache);
+        updated.ifPresent(this::syncToCache);
         return updated;
     }
 
-    //  Admin: delete 
+    // ─── Admin: delete ───────────────────────────────────────────────────────
     public boolean deleteProduct(String id) {
         boolean deleted = pgRepo.deleteById(id);
         if (deleted) {
             try {
-                redisCache.deleteById(id);
+                cache.deleteById(id);
+                log.debug("[catalog] Evicted product {} from Redis cache", id);
             } catch (Exception ex) {
-                log.warn("[catalog] Redis evict failed for {}: {}", id, ex.getMessage());
+                log.warn("[catalog] Cache eviction failed for {}: {}", id, ex.getMessage());
             }
         }
         return deleted;
     }
 
-    //  Internal: warm Redis cache 
-    private void warmCache(Product p) {
+    // ─── Internal ────────────────────────────────────────────────────────────
+    private void syncToCache(Product p) {
         try {
-            redisCache.save(p);
+            cache.save(p);
+            log.debug("[catalog] Cached product {} '{}'", p.getId(), p.getName());
         } catch (Exception ex) {
-            // Redis is a cache, not source of truth  don't fail the request
-            log.warn("[catalog] Redis cache warm failed for {}: {}", p.getId(), ex.getMessage());
+            log.warn("[catalog] Cache sync failed for {}: {}", p.getId(), ex.getMessage());
         }
     }
 }

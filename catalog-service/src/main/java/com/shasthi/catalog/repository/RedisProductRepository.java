@@ -2,57 +2,64 @@ package com.shasthi.catalog.repository;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.shasthi.catalog.model.Product;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+import java.util.Optional;
 
 /**
- * Simple Redis cache using StringRedisTemplate + Jackson JSON.
- * Replaces redis-om-spring which is not on Maven Central.
- *
- * Cache strategy:
- *  - Key: "product:<id>"   -> JSON of the Product
- *  - TTL: 30 minutes
- *
- * Full-text search is handled by Postgres ILIKE in ProductService.
+ * Simple Redis cache for product JSON blobs.
+ * Uses StringRedisTemplate — no external libraries required.
+ * Key pattern: product:<uuid>
+ * TTL: 30 minutes
  */
-@Repository
+@Component
 public class RedisProductRepository {
 
-    private static final Logger log = LoggerFactory.getLogger(RedisProductRepository.class);
-    private static final String KEY_PREFIX = "product:";
-    private static final long   TTL_MINUTES = 30;
+    private static final Logger log    = LoggerFactory.getLogger(RedisProductRepository.class);
+    private static final String PREFIX = "product:";
+    private static final Duration TTL  = Duration.ofMinutes(30);
 
     private final StringRedisTemplate redis;
     private final ObjectMapper        mapper;
 
-    public RedisProductRepository(StringRedisTemplate redis, ObjectMapper mapper) {
+    public RedisProductRepository(StringRedisTemplate redis) {
         this.redis  = redis;
-        this.mapper = mapper;
+        this.mapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
-    /** Store product JSON in Redis with TTL. */
-    public void save(Product p) {
+    /** Cache a product as JSON */
+    public void save(Product product) {
         try {
-            String json = mapper.writeValueAsString(p);
-            redis.opsForValue().set(KEY_PREFIX + p.getId(), json, TTL_MINUTES, TimeUnit.MINUTES);
-        } catch (JsonProcessingException ex) {
-            log.warn("[redis-cache] Failed to serialize product {}: {}", p.getId(), ex.getMessage());
+            String json = mapper.writeValueAsString(product);
+            redis.opsForValue().set(PREFIX + product.getId(), json, TTL);
+        } catch (JsonProcessingException e) {
+            log.warn("[cache] Could not serialize product {}: {}", product.getId(), e.getMessage());
         }
     }
 
-    /** Remove a product from the cache. */
-    public void deleteById(String id) {
-        redis.delete(KEY_PREFIX + id);
+    /** Read a product from cache */
+    public Optional<Product> findById(String id) {
+        try {
+            String json = redis.opsForValue().get(PREFIX + id);
+            if (json == null) return Optional.empty();
+            return Optional.of(mapper.readValue(json, Product.class));
+        } catch (Exception e) {
+            log.warn("[cache] Could not deserialize product {}: {}", id, e.getMessage());
+            return Optional.empty();
+        }
     }
 
-    /** Evict all cached products (call after bulk updates). */
-    public void evictAll() {
-        var keys = redis.keys(KEY_PREFIX + "*");
-        if (keys != null && !keys.isEmpty()) redis.delete(keys);
+    /** Evict a product from cache */
+    public void deleteById(String id) {
+        redis.delete(PREFIX + id);
     }
 }
