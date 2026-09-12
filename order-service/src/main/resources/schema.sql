@@ -1,17 +1,15 @@
--- ── order_status ENUM (guarded for repeated runs) ───────────────────────────
-DO $$ BEGIN
-  CREATE TYPE order_status AS ENUM ('PENDING','PROCESSING','SHIPPED','DELIVERED','CANCELLED');
-EXCEPTION WHEN duplicate_object THEN null;
-END $$;
-
 -- ── orders table ─────────────────────────────────────────────────────────────
+-- NOTE: Using TEXT + CHECK instead of a custom ENUM type.
+-- Reason: Spring Boot ScriptUtils splits SQL on ';' and cannot handle
+-- PostgreSQL dollar-quoting (DO $$ ... END $$) used for conditional CREATE TYPE.
 CREATE TABLE IF NOT EXISTS orders (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id    TEXT UNIQUE NOT NULL,             -- Kafka eventId, prevents duplicate processing
+  event_id    TEXT UNIQUE NOT NULL,
   user_id     UUID NOT NULL,
   user_email  TEXT NOT NULL,
   total_price NUMERIC(12,2) NOT NULL,
-  status      order_status NOT NULL DEFAULT 'PENDING',
+  status      TEXT NOT NULL DEFAULT 'PENDING'
+                CHECK (status IN ('PENDING','PROCESSING','SHIPPED','DELIVERED','CANCELLED')),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

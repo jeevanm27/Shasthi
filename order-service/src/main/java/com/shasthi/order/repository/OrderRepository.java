@@ -88,7 +88,7 @@ public class OrderRepository {
         jdbc.update(
             """
             INSERT INTO orders (id, event_id, user_id, user_email, total_price, status)
-            VALUES (?::uuid, ?, ?::uuid, ?, ?, 'PENDING'::order_status)
+            VALUES (?::uuid, ?, ?::uuid, ?, ?, 'PENDING')
             """,
             id, eventId, userId, userEmail, totalPrice
         );
@@ -113,7 +113,7 @@ public class OrderRepository {
     //  Mark order as CANCELLED 
     public void cancelOrder(String orderId) {
         jdbc.update(
-            "UPDATE orders SET status = 'CANCELLED'::order_status, updated_at = NOW() WHERE id = ?::uuid",
+            "UPDATE orders SET status = 'CANCELLED', updated_at = NOW() WHERE id = ?::uuid",
             orderId
         );
     }
@@ -145,7 +145,7 @@ public class OrderRepository {
     //  Admin: update status 
     public Optional<Order> updateStatus(String orderId, String status) {
         int rows = jdbc.update(
-            "UPDATE orders SET status = ?::order_status, updated_at = NOW() WHERE id = ?::uuid",
+            "UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?::uuid",
             status, orderId
         );
         if (rows == 0) return Optional.empty();
